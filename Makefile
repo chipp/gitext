@@ -14,7 +14,7 @@ build:
 clean_archive:
 	rm -rf archive
 
-archive: clean build clean_archive
+archive: build clean_archive
 	mkdir archive
 	cp -r gitbucket/wrappers archive/
 	cp target/release/gitbucket install/Makefile archive
