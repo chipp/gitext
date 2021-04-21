@@ -14,13 +14,9 @@ impl Prs {
         let repo_id = get_current_repo_id(&repo).ok_or(Error::InvalidRepo)?;
 
         let mut args = args;
-        let author = if let Some(arg) = args.next() {
-            if &arg == "my" {
-                let (username, _) = auth::credentials();
-                Some(username)
-            } else {
-                None
-            }
+        let author = if let Some("my") = args.next().as_ref().map(AsRef::<str>::as_ref) {
+            let (username, _) = auth::credentials();
+            Some(username)
         } else {
             None
         };
