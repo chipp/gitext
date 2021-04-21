@@ -1,5 +1,4 @@
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
 #[cfg(unix)]
@@ -36,12 +35,6 @@ gitbucket {}
             ),
         )
         .unwrap();
-
-        let metadata = fs::metadata(&file_path).unwrap();
-        let mut permissions = metadata.permissions();
-        permissions.set_mode(0o755);
-
-        fs::set_permissions(&file_path, permissions).unwrap();
     }
 
     println!("cargo:rerun-if-changed=src/commands/");

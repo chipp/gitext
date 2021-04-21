@@ -10,7 +10,7 @@ edition = "2018"
 bitbucket = { path = "../bitbucket" }
 futures-executor = "0.3"
 
-git2 = { version = "0.10", features = [] }
+git2 = { version = "0.10", default-features = false }
 
 url = "2.0"
 dirs = "2.0"
