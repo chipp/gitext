@@ -6,7 +6,7 @@
       "command": "run",
       "args": ["--", "prs"],
       "env": {
-        "REPO_PATH": "/Users/vburdukov/d/i/ios/develop/source"
+        "REPO_PATH": "/Users/vburdukov/d/i/ios/develop"
       },
       "problemMatcher": ["$rustc"],
       "label": "gitbucket: prs"
@@ -14,9 +14,19 @@
     {
       "type": "cargo",
       "command": "run",
+      "args": ["--", "prs", "my"],
+      "env": {
+        "REPO_PATH": "/Users/vburdukov/d/i/ios/develop"
+      },
+      "problemMatcher": ["$rustc"],
+      "label": "gitbucket: prs my"
+    },
+    {
+      "type": "cargo",
+      "command": "run",
       "args": ["--", "browse"],
       "env": {
-        "REPO_PATH": "/Users/vburdukov/d/i/ios/develop/source"
+        "REPO_PATH": "/Users/vburdukov/d/i/ios/develop"
       },
       "problemMatcher": ["$rustc"],
       "label": "gitbucket: browse"

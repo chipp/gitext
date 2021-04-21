@@ -31,15 +31,23 @@ impl Client<'_> {
     pub async fn find_open_prs(
         &self,
         repo_id: &RepoId,
+        author: Option<String>
     ) -> Result<PageResponse<PullRequest>, Error> {
+        let params: Vec<(&str, &str)>;
+        if let Some(author) = author.as_ref() {
+            params = vec![("username.1", author), ("role.1", "AUTHOR")];
+        } else {
+            params = vec![];
+        }
+
         self.inner
-            .get(vec![
+            .get_with_params(vec![
                 "projects",
                 &repo_id.project,
                 "repos",
                 &repo_id.name,
                 "pull-requests",
-            ])
+            ], &params)
             .await
     }
 

@@ -6,11 +6,23 @@ use prettytable::{cell, row, Cell, Table};
 pub struct Prs;
 
 impl Prs {
-    pub async fn handle(_args: std::env::Args, repo: Repository) -> Result<(), Error> {
+    pub async fn handle(args: std::env::Args, repo: Repository) -> Result<(), Error> {
         let repo_id = get_current_repo_id(&repo).ok_or(Error::InvalidRepo)?;
 
+        let mut args = args;
+        let author = if let Some(arg) = args.next() {
+            if &arg == "my" {
+                let (username, _) = auth::credentials();
+                Some(username)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         let client = Client::new();
-        let prs = client.find_open_prs(&repo_id).await?;
+        let prs = client.find_open_prs(&repo_id, author).await?;
 
         let mut table = Table::new();
         table.set_titles(row![
@@ -57,9 +69,7 @@ impl Prs {
             let reviewers = pr
                 .reviewers
                 .iter()
-                .filter(|reviewer| {
-                    &reviewer.user.name != "devops" && &reviewer.user.name != "ci"
-                })
+                .filter(|reviewer| &reviewer.user.name != "devops" && &reviewer.user.name != "ci")
                 .collect::<Vec<_>>()
                 .len();
 
