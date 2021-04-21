@@ -28,10 +28,15 @@ impl Client<'_> {
 }
 
 impl Client<'_> {
+    pub async fn whoami(&self) -> Result<super::user::User, Error> {
+        let (username, _) = auth::credentials();
+        self.inner.get(vec!["users", &username]).await
+    }
+
     pub async fn find_open_prs(
         &self,
         repo_id: &RepoId,
-        author: Option<String>
+        author: Option<String>,
     ) -> Result<PageResponse<PullRequest>, Error> {
         let params: Vec<(&str, &str)>;
         if let Some(author) = author.as_ref() {
@@ -41,13 +46,16 @@ impl Client<'_> {
         }
 
         self.inner
-            .get_with_params(vec![
-                "projects",
-                &repo_id.project,
-                "repos",
-                &repo_id.name,
-                "pull-requests",
-            ], &params)
+            .get_with_params(
+                vec![
+                    "projects",
+                    &repo_id.project,
+                    "repos",
+                    &repo_id.name,
+                    "pull-requests",
+                ],
+                &params,
+            )
             .await
     }
 

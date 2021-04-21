@@ -3,9 +3,7 @@ use chrono::serde::ts_milliseconds;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use url::Url;
-
-mod user;
-use user::Actor;
+use super::user::Actor;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,7 +74,7 @@ impl PullRequest {
 
 #[cfg(test)]
 mod tests {
-    use super::user::User;
+    use crate::user::User;
     use super::*;
 
     #[test]

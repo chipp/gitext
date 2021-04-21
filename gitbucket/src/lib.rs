@@ -20,6 +20,7 @@ pub async fn handle(args: Args) -> Result<(), Error> {
         Some("ticket") => Ticket::handle(args, get_repo(path)?).await,
         Some("pr") => Pr::handle(args, get_repo(path)?).await,
         Some("prs") => Prs::handle(args, get_repo(path)?).await,
+        Some("auth") => Auth::handle(args).await,
         Some(command) => Err(Error::UnknownCommand(command.to_string())),
         None => {
             // TODO: help message

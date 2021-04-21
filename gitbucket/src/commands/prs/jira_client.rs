@@ -9,17 +9,13 @@ impl<'a> JiraClient<'a> {
     pub fn new() -> JiraClient<'a> {
         let mut inner = HttpClient::new("https://jira.company.com/rest").unwrap();
 
-        let (username, password) = auth::credentials();
-
         inner.set_interceptor(move |easy| {
             let mut auth = Auth::new();
-
-            auth.basic(true);
-
+            auth.gssnegotiate(true);
             easy.http_auth(&auth).unwrap();
 
-            easy.username(&username).unwrap();
-            easy.password(&password).unwrap();
+            easy.username("").unwrap();
+            easy.password("").unwrap();
         });
 
         JiraClient { inner }

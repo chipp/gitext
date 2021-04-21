@@ -9,3 +9,6 @@ pub use pr::Pr;
 
 mod prs;
 pub use prs::Prs;
+
+mod auth;
+pub use self::auth::Auth;

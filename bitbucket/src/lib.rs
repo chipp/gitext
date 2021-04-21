@@ -7,6 +7,8 @@ pub use client::Client;
 mod pull_request;
 pub use pull_request::PullRequest;
 
+mod user;
+
 use git2::{Error as GitError, Remote, Repository, RepositoryOpenFlags};
 
 pub fn get_repo(path: &str) -> Result<Repository, GitError> {

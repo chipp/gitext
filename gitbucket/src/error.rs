@@ -5,6 +5,8 @@ use std::io::Error as IoError;
 
 #[derive(Debug)]
 pub enum Error {
+    AuthorizationError,
+
     UnknownCommand(String),
     UnknownSubCommand(String, &'static [&'static str]),
     InvalidRepo,
@@ -55,6 +57,7 @@ impl fmt::Display for Error {
         use Error::*;
 
         match self {
+            AuthorizationError => write!(f, "token is invalid"),
             UnknownCommand(cmd) => write!(f, "unknown command {}", cmd),
             UnknownSubCommand(sub, supported) => write!(
                 f,
