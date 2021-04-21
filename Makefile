@@ -2,7 +2,7 @@
 
 install:
 	cargo test --release
-	cargo install --path gitbucket --force
+	cargo install --path gitbucket --force --locked
 	install -m 755 $(wildcard gitbucket/wrappers/git-*) ~/.cargo/bin/
 
 clean:

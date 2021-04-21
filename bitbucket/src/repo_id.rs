@@ -1,7 +1,7 @@
 use url::Url;
 
+pub const SERVER_URL: &str = "https://bitbucket.company.com";
 const SERVER_HOST: &str = "bitbucket.company.com";
-const SERVER_URL: &str = "https://bitbucket.company.com";
 
 #[derive(Debug, PartialEq)]
 pub struct RepoId {

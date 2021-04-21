@@ -49,6 +49,19 @@ impl Client<'_> {
 
         response.map(|r: PageResponse<PullRequest>| r.values)
     }
+
+    pub async fn get_pr_by_id(&self, id: u16, repo_id: &RepoId) -> Result<PullRequest, Error> {
+        self.inner
+            .get(vec![
+                "projects",
+                &repo_id.project,
+                "repos",
+                &repo_id.name,
+                "pull-requests",
+                &id.to_string(),
+            ])
+            .await
+    }
 }
 
 #[derive(Deserialize)]
