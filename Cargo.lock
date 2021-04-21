@@ -53,6 +53,7 @@ name = "bitbucket"
 version = "0.1.0"
 dependencies = [
  "auth",
+ "dirs",
  "futures-util",
  "git2",
  "http_client",
@@ -265,7 +266,6 @@ name = "gitbucket"
 version = "0.1.0"
 dependencies = [
  "bitbucket",
- "dirs",
  "futures-executor",
  "git2",
  "regex",
