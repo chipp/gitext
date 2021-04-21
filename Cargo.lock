@@ -108,13 +108,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "git-bucket"
-version = "0.1.0"
-dependencies = [
- "bitbucket 0.1.0",
-]
-
-[[package]]
 name = "git2"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -125,6 +118,14 @@ dependencies = [
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-probe 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.9.54 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gitbucket"
+version = "0.1.0"
+dependencies = [
+ "bitbucket 0.1.0",
  "url 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

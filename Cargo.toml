@@ -2,5 +2,5 @@
 
 members = [
     "bitbucket",
-    "git-bucket",
+    "gitbucket",
 ]
