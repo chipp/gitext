@@ -28,6 +28,21 @@ impl Client<'_> {
 }
 
 impl Client<'_> {
+    pub async fn find_open_prs(
+        &self,
+        repo_id: &RepoId,
+    ) -> Result<PageResponse<PullRequest>, Error> {
+        self.inner
+            .get(vec![
+                "projects",
+                &repo_id.project,
+                "repos",
+                &repo_id.name,
+                "pull-requests",
+            ])
+            .await
+    }
+
     pub async fn find_prs_for_branch(
         &self,
         branch: &str,
@@ -65,6 +80,11 @@ impl Client<'_> {
 }
 
 #[derive(Deserialize)]
-struct PageResponse<V> {
-    values: Vec<V>,
+#[serde(rename_all = "camelCase")]
+pub struct PageResponse<V> {
+    pub values: Vec<V>,
+    pub is_last_page: bool,
+    pub size: u16,
+    pub start: u16,
+    pub limit: u16,
 }

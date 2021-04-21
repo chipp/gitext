@@ -1,11 +1,26 @@
 use crate::repo_id::SERVER_URL;
+use chrono::serde::ts_milliseconds;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use url::Url;
+
+mod user;
+use user::Actor;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PullRequest {
     pub id: u16,
+    pub title: String,
+
+    #[serde(rename = "createdDate", with = "ts_milliseconds")]
+    pub created: DateTime<Utc>,
+    #[serde(rename = "updatedDate", with = "ts_milliseconds")]
+    pub updated: DateTime<Utc>,
+
+    pub author: Actor,
+    pub reviewers: Vec<Actor>,
+
     pub from_ref: Ref,
     pub to_ref: Ref,
     pub state: PullRequestState,
@@ -61,6 +76,7 @@ impl PullRequest {
 
 #[cfg(test)]
 mod tests {
+    use super::user::User;
     use super::*;
 
     #[test]
@@ -94,6 +110,18 @@ mod tests {
                 },
             },
             state: PullRequestState::Open,
+            title: String::default(),
+            author: Actor {
+                user: User {
+                    id: 1,
+                    name: String::default(),
+                    display_name: String::default(),
+                },
+                approved: false,
+            },
+            reviewers: vec![],
+            created: Utc::now(),
+            updated: Utc::now(),
         };
 
         assert_eq!(

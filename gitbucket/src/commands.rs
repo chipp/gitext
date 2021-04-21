@@ -6,3 +6,6 @@ pub use ticket::Ticket;
 
 mod pr;
 pub use pr::Pr;
+
+mod prs;
+pub use prs::Prs;
