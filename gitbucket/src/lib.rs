@@ -1,16 +1,17 @@
 mod commands;
 use commands::*;
+
 use git2::{Repository, RepositoryOpenFlags};
 
 pub fn handle(args: std::env::Args) -> Result<(), String> {
     let mut args = args;
     let _ = args.next();
 
+    let path = "/Users/vburdukov/d/i/Core/develop";
+
     match args.next().as_ref().map(String::as_str) {
-        Some("browse") => {
-            let repo = get_repo("/Users/vburdukov/d/i/Core/develop")?;
-            Browse::handle(args, repo)
-        }
+        Some("browse") => Browse::handle(args, get_repo(path)?),
+        Some("ticket") => Ticket::handle(args, get_repo(path)?),
         Some(command) => Err(format!("unknown command {}", command)),
         None => Err(String::from("no command")),
     }
