@@ -9,7 +9,7 @@ pub struct Ticket;
 const JIRA_URL: &str = "https://jira.company.com";
 
 impl Ticket {
-    pub fn handle(_args: std::env::Args, repo: Repository) -> Result<(), String> {
+    pub async fn handle(_args: std::env::Args, repo: Repository) -> Result<(), String> {
         let _ =
             get_current_repo_id(&repo).ok_or(String::from("this is not a bitbucket repository"))?;
         let branch =

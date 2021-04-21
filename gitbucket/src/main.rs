@@ -1,5 +1,6 @@
+use futures_executor::block_on;
 use gitbucket::*;
 
 fn main() -> Result<(), String> {
-    handle(std::env::args())
+    block_on(handle(std::env::args()))
 }

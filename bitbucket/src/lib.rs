@@ -1,5 +1,11 @@
-mod repo;
-pub use repo::RepoId;
+mod repo_id;
+pub use repo_id::RepoId;
+
+mod client;
+pub use client::Client;
+
+mod pull_request;
+pub use pull_request::PullRequest;
 
 use git2::Repository;
 

@@ -34,7 +34,7 @@ impl RepoId {
         })
     }
 
-    pub fn url(&self) -> String {
+    pub fn url(&self) -> Url {
         let mut url = Url::parse(SERVER_URL).unwrap();
 
         {
@@ -45,7 +45,7 @@ impl RepoId {
             segments.push(&self.name);
         }
 
-        url.to_string()
+        url
     }
 }
 
@@ -92,8 +92,8 @@ mod tests {
         };
 
         assert_eq!(
-            repo_id.url(),
-            String::from("https://bitbucket.company.com/projects/AP/repos/mobile_ios")
+            repo_id.url().as_str(),
+            "https://bitbucket.company.com/projects/AP/repos/mobile_ios"
         )
     }
 }
