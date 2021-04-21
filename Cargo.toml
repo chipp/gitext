@@ -3,6 +3,5 @@
 members = [
     "bitbucket",
     "gitbucket",
-    "auth",
-    "http_client"
+    "auth"
 ]

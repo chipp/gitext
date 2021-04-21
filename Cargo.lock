@@ -280,12 +280,11 @@ dependencies = [
 
 [[package]]
 name = "http_client"
-version = "0.4.2"
+version = "0.4.7"
+source = "git+https://github.com/chipp/http_client?tag=0.4.7#146a57502247ec25f5356ada09e48757b826df6a"
 dependencies = [
  "curl",
  "futures-channel",
- "futures-executor",
- "futures-util",
  "serde",
  "serde_derive",
  "serde_json",
