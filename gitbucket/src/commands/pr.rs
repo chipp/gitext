@@ -23,20 +23,32 @@ impl Pr {
         let mut args = args;
 
         if let Some(pr) = args.next() {
-            if &pr == "new" {
-                Self::open_url(Self::url_for_create(&branch, &repo_id))
-            } else {
-                let id = u16::from_str(&pr).map_err(|_| Error::InvalidPrId(pr))?;
+            match pr.as_str() {
+                "new" => Self::open_url(Self::url_for_create(&branch, &repo_id)),
+                "check" => {
+                    let client = Client::new();
+                    let mut prs = client
+                        .find_prs_for_branch(&branch, &repo_id, "OPEN")
+                        .await?;
+                    prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
 
-                let client = Client::new();
-                let pr = client
-                    .get_pr_by_id(id, &repo_id)
-                    .await
-                    .map_err(|err| Error::NoPrWithId(id, err))?;
+                    super::Prs::print_table_for_prs(&prs).await;
 
-                Self::switch_to_branch(&pr, &repo)?;
+                    Ok(())
+                }
+                _ => {
+                    let id = u16::from_str(&pr).map_err(|_| Error::InvalidPrId(pr))?;
 
-                Ok(())
+                    let client = Client::new();
+                    let pr = client
+                        .get_pr_by_id(id, &repo_id)
+                        .await
+                        .map_err(|err| Error::NoPrWithId(id, err))?;
+
+                    Self::switch_to_branch(&pr, &repo)?;
+
+                    Ok(())
+                }
             }
         } else {
             let existing_pr = Self::find_existing_pr(&branch, &repo_id).await?;
@@ -56,7 +68,7 @@ impl Pr {
         repo_id: &RepoId,
     ) -> Result<Option<PullRequest>, Error> {
         let client = Client::new();
-        let prs = client.find_prs_for_branch(&branch, &repo_id).await;
+        let prs = client.find_prs_for_branch(&branch, &repo_id, "ALL").await;
 
         let mut prs = prs.map_err(|err| Error::NoPrsForBranch(branch.to_string(), err))?;
         prs.sort_unstable_by(|lhs, rhs| lhs.state.cmp(&rhs.state));

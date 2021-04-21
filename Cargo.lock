@@ -370,6 +370,7 @@ dependencies = [
  "prettytable-rs",
  "regex",
  "rpassword",
+ "serde",
  "textwrap",
  "url",
 ]

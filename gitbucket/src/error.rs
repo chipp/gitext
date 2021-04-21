@@ -16,6 +16,7 @@ pub enum Error {
     NoJiraTicket(String),
 
     NoPrsForBranch(String, HttpError),
+    NoOpenPrsForBranch(String),
     NoPrWithId(u16, HttpError),
     InvalidPrId(String),
 }
@@ -67,6 +68,9 @@ impl fmt::Display for Error {
 
             NoPrsForBranch(branch, err) => {
                 write!(f, "can't find prs for branch {}: {}", branch, err)
+            }
+            NoOpenPrsForBranch(branch) => {
+                write!(f, "there are no any open prs for branch {}", branch)
             }
 
             NoPrWithId(id, err) => write!(f, "can't find pr with id {}: {}", id, err),

@@ -55,6 +55,7 @@ impl Client<'_> {
         &self,
         branch: &str,
         repo_id: &RepoId,
+        state: &str,
     ) -> Result<Vec<PullRequest>, Error> {
         let response = self
             .inner
@@ -66,7 +67,7 @@ impl Client<'_> {
                     &repo_id.name,
                     "pull-requests",
                 ],
-                &[("at", branch), ("direction", "OUTGOING"), ("state", "ALL")],
+                &[("at", branch), ("direction", "OUTGOING"), ("state", state)],
             )
             .await;
 

@@ -30,6 +30,16 @@
       },
       "problemMatcher": ["$rustc"],
       "label": "gitbucket: browse"
+    },
+    {
+      "type": "cargo",
+      "command": "run",
+      "args": ["--", "pr", "check"],
+      "env": {
+        "REPO_PATH": "/Users/vburdukov/d/i/ios/develop"
+      },
+      "problemMatcher": ["$rustc"],
+      "label": "gitbucket: pr check"
     }
   ]
 }

@@ -30,8 +30,8 @@ pub struct PullRequest {
 #[serde(rename_all = "UPPERCASE")]
 pub enum PullRequestState {
     Open,
-    Declined,
     Merged,
+    Declined,
 }
 
 #[derive(Deserialize)]

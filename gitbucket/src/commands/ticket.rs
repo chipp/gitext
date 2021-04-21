@@ -32,7 +32,7 @@ impl Ticket {
             .map_err(|err| Error::OpenUrl(err, url))
     }
 
-    fn extract_ticket<'b>(branch: &'b str) -> Result<&'b str, Error> {
+    pub fn extract_ticket<'b>(branch: &'b str) -> Result<&'b str, Error> {
         let re = Regex::new(r"\w{2,}-\d+").unwrap();
         re.captures(&branch)
             .map(|caps| caps.get(0).unwrap().as_str())
