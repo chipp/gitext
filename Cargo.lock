@@ -270,6 +270,7 @@ dependencies = [
  "bitbucket",
  "futures-executor",
  "git2",
+ "http_client",
  "regex",
  "url",
 ]

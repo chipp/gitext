@@ -1,4 +1,5 @@
 use crate::Response;
+use std::error::Error as StdError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -18,6 +19,8 @@ impl From<serde_json::Error> for Error {
         Error::JsonParseError(error)
     }
 }
+
+impl StdError for Error {}
 
 use std::fmt;
 

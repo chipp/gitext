@@ -7,15 +7,14 @@ pub use client::Client;
 mod pull_request;
 pub use pull_request::PullRequest;
 
-use git2::{Remote, Repository, RepositoryOpenFlags};
+use git2::{Error as GitError, Remote, Repository, RepositoryOpenFlags};
 
-pub fn get_repo(path: &str) -> Result<Repository, String> {
+pub fn get_repo(path: &str) -> Result<Repository, GitError> {
     Repository::open_ext(
         path,
         RepositoryOpenFlags::empty(),
         vec![dirs::home_dir().unwrap()],
     )
-    .map_err(|e| format!("failed to open: {}", e))
 }
 
 pub fn get_current_repo_id(repo: &Repository) -> Option<RepoId> {

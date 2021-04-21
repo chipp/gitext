@@ -1,3 +1,4 @@
+use crate::Error;
 use bitbucket::{get_current_branch, get_current_repo_id};
 use git2::Repository;
 use std::process::{Command, Stdio};
@@ -5,11 +6,9 @@ use std::process::{Command, Stdio};
 pub struct Browse;
 
 impl Browse {
-    pub async fn handle(_args: std::env::Args, repo: Repository, path: &str) -> Result<(), String> {
-        let repo_id =
-            get_current_repo_id(&repo).ok_or(String::from("this is not a bitbucket repository"))?;
-        let branch =
-            get_current_branch(&repo).ok_or(String::from("can't find the current branch"))?;
+    pub async fn handle(_args: std::env::Args, repo: Repository, path: &str) -> Result<(), Error> {
+        let repo_id = get_current_repo_id(&repo).ok_or(Error::InvalidRepo)?;
+        let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
 
         let mut url = repo_id.url();
 
@@ -39,6 +38,6 @@ impl Browse {
             .stdout(Stdio::null())
             .spawn()
             .map(|_| ())
-            .map_err(|e| format!("can't open URL {}: {}", url, e))
+            .map_err(|err| Error::OpenUrl(err, url))
     }
 }
