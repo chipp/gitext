@@ -3,8 +3,8 @@ use bitbucket::{
     get_bitbucket_remote, get_current_branch, get_current_repo_id, Client, PullRequest, RepoId,
 };
 use git2::{
-    build::CheckoutBuilder, Branch, BranchType, Error as GitError, ErrorClass, ErrorCode, Remote,
-    Repository,
+    build::CheckoutBuilder, Branch, BranchType, Error as GitError, ErrorClass, ErrorCode, Oid,
+    Remote, Repository,
 };
 use std::process::{Command, Stdio};
 use std::str::FromStr;
@@ -93,19 +93,15 @@ impl Pr {
         let mut remote = get_bitbucket_remote(&repo).unwrap();
         Self::fetch_remote(&mut remote)?;
 
-        // TODO: switch to commit
-        let remote_branch = Self::find_remote_branch(branch_name, &remote, &repo)?;
-
-        match repo.find_branch(branch_name, BranchType::Local) {
-            Ok(local_branch) => Self::switch_to_local_branch(local_branch, &repo),
+        match Self::find_remote_branch(branch_name, &remote, &repo) {
+            Ok(remote_branch) => Self::switch_to_existing_branch(branch_name, remote_branch, repo),
             Err(err)
                 if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
             {
-                let commit = remote_branch.get().peel_to_commit()?;
+                let id = Oid::from_str(&pr.from_ref.latest_commit)?;
+                let commit = repo.find_commit(id)?;
 
-                let mut local_branch = repo.branch(branch_name, &commit, false)?;
-                local_branch.set_upstream(remote_branch.name().unwrap())?;
-
+                let local_branch = repo.branch(&pr.from_ref.display_id, &commit, false)?;
                 Self::switch_to_local_branch(local_branch, &repo)
             }
             Err(err) => Err(err),
@@ -137,6 +133,27 @@ impl Pr {
 
         let branch = repo.find_branch(&branch_name, BranchType::Remote)?;
         Ok(branch)
+    }
+
+    fn switch_to_existing_branch(
+        branch_name: &str,
+        remote_branch: Branch,
+        repo: &Repository,
+    ) -> Result<(), GitError> {
+        match repo.find_branch(branch_name, BranchType::Local) {
+            Ok(local_branch) => Self::switch_to_local_branch(local_branch, &repo),
+            Err(err)
+                if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
+            {
+                let commit = remote_branch.get().peel_to_commit()?;
+
+                let mut local_branch = repo.branch(branch_name, &commit, false)?;
+                local_branch.set_upstream(remote_branch.name().unwrap())?;
+
+                Self::switch_to_local_branch(local_branch, &repo)
+            }
+            Err(err) => Err(err),
+        }
     }
 
     fn switch_to_local_branch(branch: Branch, repo: &Repository) -> Result<(), GitError> {
