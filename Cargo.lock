@@ -267,11 +267,14 @@ dependencies = [
 name = "gitbucket"
 version = "0.1.0"
 dependencies = [
+ "auth",
  "bitbucket",
+ "dirs",
  "futures-executor",
  "git2",
  "http_client",
  "regex",
+ "rpassword",
  "url",
 ]
 
@@ -494,6 +497,16 @@ name = "regex-syntax"
 version = "0.6.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b28dfe3fe9badec5dbf0a79a9cccad2cfc2ab5484bdb3e44cbd1ae8b3ba2be06"
+
+[[package]]
+name = "rpassword"
+version = "4.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99371657d3c8e4d816fb6221db98fa408242b0b53bac08f8676a41f8554fe99f"
+dependencies = [
+ "libc",
+ "winapi",
+]
 
 [[package]]
 name = "rust-argon2"

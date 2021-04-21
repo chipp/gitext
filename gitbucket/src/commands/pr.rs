@@ -10,6 +10,9 @@ use std::process::{Command, Stdio};
 use std::str::FromStr;
 use url::Url;
 
+mod credential_helper;
+use credential_helper::CredentialHelper;
+
 pub struct Pr;
 
 impl Pr {
@@ -98,6 +101,7 @@ impl Pr {
             Err(err)
                 if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
             {
+                // TODO: handle existing local branch
                 let id = Oid::from_str(&pr.from_ref.latest_commit)?;
                 let commit = repo.find_commit(id)?;
 
@@ -109,11 +113,15 @@ impl Pr {
     }
 
     fn fetch_remote(remote: &mut Remote) -> Result<(), GitError> {
-        use git2::{Cred, RemoteCallbacks};
+        use git2::RemoteCallbacks;
+
+        println!("fetching remote {}", remote.name().unwrap());
+
+        let mut credential_helper = CredentialHelper::new();
 
         let mut callbacks = RemoteCallbacks::new();
-        callbacks.credentials(|_, username_from_url, _| {
-            Cred::ssh_key_from_agent(username_from_url.unwrap())
+        callbacks.credentials(move |url, username_from_url, allowed_types| {
+            credential_helper.credentials(url, username_from_url, allowed_types)
         });
 
         let mut fo = git2::FetchOptions::new();
@@ -132,6 +140,9 @@ impl Pr {
         let branch_name = format!("{}/{}", remote_name, branch_name);
 
         let branch = repo.find_branch(&branch_name, BranchType::Remote)?;
+
+        println!("found remote branch {}", branch.name().unwrap().unwrap());
+
         Ok(branch)
     }
 
@@ -145,6 +156,11 @@ impl Pr {
             Err(err)
                 if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
             {
+                println!(
+                    "creating a local branch from remote branch {}",
+                    remote_branch.name().unwrap().unwrap()
+                );
+
                 let commit = remote_branch.get().peel_to_commit()?;
 
                 let mut local_branch = repo.branch(branch_name, &commit, false)?;
@@ -157,6 +173,11 @@ impl Pr {
     }
 
     fn switch_to_local_branch(branch: Branch, repo: &Repository) -> Result<(), GitError> {
+        println!(
+            "switching to local branch {}",
+            branch.name().unwrap().unwrap()
+        );
+
         let reference = branch.get();
         let commit = reference.peel_to_commit()?;
 
