@@ -7,7 +7,7 @@ pub fn handle(args: std::env::Args) -> Result<(), String> {
     let mut args = args;
     let _ = args.next();
 
-    let path = "/Users/vburdukov/d/i/Core/develop";
+    let path = ".";
 
     match args.next().as_ref().map(String::as_str) {
         Some("browse") => Browse::handle(args, get_repo(path)?),
