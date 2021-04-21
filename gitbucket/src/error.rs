@@ -6,6 +6,7 @@ use std::io::Error as IoError;
 #[derive(Debug)]
 pub enum Error {
     UnknownCommand(String),
+    UnknownSubCommand(String, &'static [&'static str]),
     InvalidRepo,
     Detached,
 
@@ -55,6 +56,12 @@ impl fmt::Display for Error {
 
         match self {
             UnknownCommand(cmd) => write!(f, "unknown command {}", cmd),
+            UnknownSubCommand(sub, supported) => write!(
+                f,
+                "unknown sub-command {}. supported sub-commands: {}",
+                sub,
+                supported.join(", ")
+            ),
             InvalidRepo => write!(f, "this is not a bitbucket repository"),
             Detached => write!(f, "can't find the current branch"),
 

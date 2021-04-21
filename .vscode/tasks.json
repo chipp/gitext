@@ -44,12 +44,22 @@
     {
       "type": "cargo",
       "command": "run",
-      "args": ["--", "pr", "check"],
+      "args": ["--", "pr", "info"],
       "env": {
         "REPO_PATH": "/Users/vburdukov/d/i/ios/develop"
       },
       "problemMatcher": ["$rustc"],
-      "label": "gitbucket: pr check"
+      "label": "gitbucket: pr info"
+    },
+    {
+      "type": "cargo",
+      "command": "run",
+      "args": ["--", "pr", "info", "731"],
+      "env": {
+        "REPO_PATH": "/Users/vburdukov/d/i/ios/develop"
+      },
+      "problemMatcher": ["$rustc"],
+      "label": "gitbucket: pr info 731"
     }
   ]
 }

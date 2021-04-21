@@ -30,6 +30,11 @@ impl Prs {
     }
 
     pub async fn print_table_for_prs(prs: &[PullRequest]) {
+        if prs.is_empty() {
+            println!("No PRs for that branch");
+            return;
+        }
+
         let mut table = Table::new();
         table.set_titles(row![
             "ID",

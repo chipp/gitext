@@ -22,34 +22,8 @@ impl Pr {
 
         let mut args = args;
 
-        if let Some(pr) = args.next() {
-            match pr.as_str() {
-                "new" => Self::open_url(Self::url_for_create(&branch, &repo_id)),
-                "check" => {
-                    let client = Client::new();
-                    let mut prs = client
-                        .find_prs_for_branch(&branch, &repo_id, "OPEN")
-                        .await?;
-                    prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
-
-                    super::Prs::print_table_for_prs(&prs).await;
-
-                    Ok(())
-                }
-                _ => {
-                    let id = u16::from_str(&pr).map_err(|_| Error::InvalidPrId(pr))?;
-
-                    let client = Client::new();
-                    let pr = client
-                        .get_pr_by_id(id, &repo_id)
-                        .await
-                        .map_err(|err| Error::NoPrWithId(id, err))?;
-
-                    Self::switch_to_branch(&pr, &repo)?;
-
-                    Ok(())
-                }
-            }
+        if let Some(arg) = args.next() {
+            Self::handle_argument(arg, args.next(), repo_id, branch, repo).await
         } else {
             let existing_pr = Self::find_existing_pr(&branch, &repo_id).await?;
 
@@ -60,7 +34,58 @@ impl Pr {
             Self::open_url(url)
         }
     }
+
+    async fn handle_argument(
+        command: String,
+        id: Option<String>,
+        repo_id: RepoId,
+        branch: String,
+        repo: Repository,
+    ) -> Result<(), Error> {
+        match command.as_str() {
+            "new" | "n" => Self::open_url(Self::url_for_create(&branch, &repo_id)),
+            "info" | "i" => {
+                if let Some(id) = id {
+                    let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(command))?;
+
+                    let client = Client::new();
+                    let pr = client.get_pr_by_id(id, &repo_id).await?;
+
+                    super::Prs::print_table_for_prs(&[pr]).await;
+
+                    Ok(())
+                } else {
+                    let client = Client::new();
+                    let mut prs = client
+                        .find_prs_for_branch(&branch, &repo_id, "OPEN")
+                        .await?;
+                    prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
+
+                    super::Prs::print_table_for_prs(&prs).await;
+
+                    Ok(())
+                }
+            }
+            "checkout" | "co" => {
+                let id = id.ok_or(Error::InvalidPrId("empty".to_string()))?;
+                let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id))?;
+
+                let client = Client::new();
+                let pr = client
+                    .get_pr_by_id(id, &repo_id)
+                    .await
+                    .map_err(|err| Error::NoPrWithId(id, err))?;
+
+                Self::switch_to_branch(&pr, &repo)?;
+
+                Ok(())
+            }
+            _ => Err(Error::UnknownSubCommand(command, &SUPPORTED_COMMANDS)),
+        }
+    }
 }
+
+const SUPPORTED_COMMANDS: [&str; 3] = ["new", "info", "checkout"];
 
 impl Pr {
     async fn find_existing_pr(
