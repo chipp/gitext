@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "bitbucket",
+    "git-bucket",
+]
