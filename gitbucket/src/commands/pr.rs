@@ -44,9 +44,27 @@ impl Pr {
     ) -> Result<(), Error> {
         match command.as_str() {
             "new" | "n" => Self::open_url(Self::url_for_create(&branch, &repo_id)),
+            "browse" | "b" => {
+                if let Some(id) = id {
+                    let mut url = repo_id.url();
+
+                    {
+                        let mut segments = url.path_segments_mut().unwrap();
+
+                        let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id))?;
+
+                        segments.push("pull-requests");
+                        segments.push(&format!("{}", id));
+                    }
+
+                    Self::open_url(url)
+                } else {
+                    Err(Error::InvalidPrId(String::new()))
+                }
+            }
             "info" | "i" => {
                 if let Some(id) = id {
-                    let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(command))?;
+                    let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id))?;
 
                     let client = Client::new();
                     let pr = client.get_pr_by_id(id, &repo_id).await?;
