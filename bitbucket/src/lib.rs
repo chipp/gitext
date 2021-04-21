@@ -1,18 +1,9 @@
 mod repo;
 pub use repo::RepoId;
 
-use git2::{Repository, RepositoryOpenFlags};
+use git2::Repository;
 
-pub fn get_current_repo_id() -> Option<RepoId> {
-    let repo = match Repository::open_ext(
-        ".",
-        RepositoryOpenFlags::empty(),
-        vec![dirs::home_dir().unwrap()],
-    ) {
-        Ok(repo) => repo,
-        Err(e) => panic!("failed to open: {}", e),
-    };
-
+pub fn get_current_repo_id(repo: &Repository) -> Option<RepoId> {
     let remotes = repo.remotes().ok()?;
 
     remotes.iter().find_map(|remote| {
@@ -21,16 +12,7 @@ pub fn get_current_repo_id() -> Option<RepoId> {
     })
 }
 
-pub fn get_current_branch() -> Option<String> {
-    let repo = match Repository::open_ext(
-        ".",
-        RepositoryOpenFlags::empty(),
-        vec![dirs::home_dir().unwrap()],
-    ) {
-        Ok(repo) => repo,
-        Err(e) => panic!("failed to open: {}", e),
-    };
-
+pub fn get_current_branch(repo: &Repository) -> Option<String> {
     let head = repo.head().ok()?;
 
     if head.is_branch() {

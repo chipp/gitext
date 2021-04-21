@@ -1,5 +1,5 @@
 use gitbucket::*;
 
-fn main() -> Result<(), ()> {
+fn main() -> Result<(), String> {
     handle(std::env::args())
 }

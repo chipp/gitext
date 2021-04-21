@@ -29,7 +29,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "bitbucket"
 version = "0.1.0"
 dependencies = [
- "dirs 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "git2 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -126,6 +125,8 @@ name = "gitbucket"
 version = "0.1.0"
 dependencies = [
  "bitbucket 0.1.0",
+ "dirs 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "git2 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

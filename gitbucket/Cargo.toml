@@ -8,4 +8,6 @@ edition = "2018"
 
 [dependencies]
 bitbucket = { path = "../bitbucket" }
+git2 = { version = "0.10", features = [] }
 url = "2.0"
+dirs = "2.0"

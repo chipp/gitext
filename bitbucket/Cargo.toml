@@ -8,5 +8,4 @@ edition = "2018"
 
 [dependencies]
 git2 = { version = "0.10", features = [] }
-dirs = "2.0"
 url = "2.0"
