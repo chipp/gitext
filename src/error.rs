@@ -1,4 +1,4 @@
-use common_git::{GetConfigError, GitError};
+use crate::common_git::{GetConfigError, GitError};
 use http_client::Error as HttpError;
 use std::error::Error as StdError;
 use std::io::Error as IoError;

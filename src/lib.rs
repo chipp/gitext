@@ -4,8 +4,14 @@ mod commands {
 
 pub use commands::ticket::Ticket;
 
+mod bitbucket;
+mod common_git;
+mod error;
+mod gitbucket;
+
+pub use error::Error;
+
 use common_git::{get_config, get_repo, Provider::*};
-use error::Error;
 use gitbucket::{
     Auth as GitBucketAuth, Browse as GitBucketBrowse, Pr as GitBucketPr, Prs as GitBucketPrs,
 };

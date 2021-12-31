@@ -1,7 +1,6 @@
-use bitbucket::Client;
-use common_git::{AuthDomainConfig, BaseUrlConfig};
-
-use error::Error;
+use crate::bitbucket::Client;
+use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
+use crate::error::Error;
 
 pub struct Auth;
 

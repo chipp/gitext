@@ -2,8 +2,8 @@
 
 install:
 	cargo test --release
-	cargo install --path gitext --force --locked
-	install -m 755 $(wildcard gitext/wrappers/git-*) ~/.cargo/bin/
+	cargo install --path . --force --locked
+	install -m 755 $(wildcard wrappers/git-*) ~/.cargo/bin/
 
 clean:
 	cargo clean --release

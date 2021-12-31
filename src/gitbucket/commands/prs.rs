@@ -1,6 +1,6 @@
-use bitbucket::{get_current_repo_id, Client, PullRequest};
-use common_git::{extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
-use error::Error;
+use crate::bitbucket::{get_current_repo_id, Client, PullRequest};
+use crate::common_git::{extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
+use crate::error::Error;
 use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
 use std::collections::HashMap;

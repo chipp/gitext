@@ -74,7 +74,7 @@ impl PullRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::user::User;
+    use crate::bitbucket::user::User;
 
     #[test]
     fn url() {

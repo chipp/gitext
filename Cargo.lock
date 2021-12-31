@@ -57,22 +57,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "bitbucket"
-version = "0.1.0"
-dependencies = [
- "auth",
- "chrono",
- "common_git",
- "curl",
- "dirs 2.0.2",
- "futures-util",
- "git2",
- "http_client",
- "serde",
- "url",
-]
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -149,18 +133,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb2ff48a655fe8d2dae9a39e66af7fd8ff32a879e8c4e27422c25596a8b5e90d"
 dependencies = [
  "chrono",
-]
-
-[[package]]
-name = "common_git"
-version = "0.1.0"
-dependencies = [
- "auth",
- "dirs 2.0.2",
- "git2",
- "regex",
- "rpassword",
- "url",
 ]
 
 [[package]]
@@ -286,15 +258,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
-name = "error"
-version = "0.1.0"
-dependencies = [
- "common_git",
- "http_client",
- "url",
-]
-
-[[package]]
 name = "form_urlencoded"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -393,29 +356,6 @@ dependencies = [
  "libc",
  "libgit2-sys",
  "log",
- "openssl-probe",
- "openssl-sys",
- "url",
-]
-
-[[package]]
-name = "gitbucket"
-version = "0.1.0"
-dependencies = [
- "auth",
- "bitbucket",
- "chrono",
- "chrono-humanize",
- "common_git",
- "curl",
- "curl-sys",
- "dirs 2.0.2",
- "error",
- "git2",
- "http_client",
- "prettytable-rs",
- "serde",
- "textwrap",
  "url",
 ]
 
@@ -424,15 +364,20 @@ name = "gitext"
 version = "0.1.0"
 dependencies = [
  "auth",
- "bitbucket",
- "common_git",
+ "chrono",
+ "chrono-humanize",
  "curl",
  "curl-sys",
- "error",
+ "dirs 2.0.2",
  "futures-executor",
+ "futures-util",
  "git2",
- "gitbucket",
  "http_client",
+ "prettytable-rs",
+ "regex",
+ "rpassword",
+ "serde",
+ "textwrap",
  "url",
 ]
 
@@ -510,24 +455,8 @@ checksum = "4870c781f6063efb83150cd22c1ddf6ecf58531419e7570cdcced46970f64a16"
 dependencies = [
  "cc",
  "libc",
- "libssh2-sys",
  "libz-sys",
- "openssl-sys",
  "pkg-config",
-]
-
-[[package]]
-name = "libssh2-sys"
-version = "0.2.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b094a36eb4b8b8c8a7b4b8ae43b2944502be3e59cd87687595cf6b0a71b3f4ca"
-dependencies = [
- "cc",
- "libc",
- "libz-sys",
- "openssl-sys",
- "pkg-config",
- "vcpkg",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
+use crate::common_git::{extract_ticket, get_current_branch, BaseUrlConfig, JiraUrlConfig};
 use crate::Error;
-use bitbucket::get_current_repo_id;
-use common_git::{extract_ticket, get_current_branch, BaseUrlConfig, JiraUrlConfig};
+
 use git2::Repository;
 use std::process::{Command, Stdio};
 
@@ -16,7 +16,6 @@ impl Ticket {
         Conf: BaseUrlConfig,
         Conf: JiraUrlConfig,
     {
-        let _ = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
         let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
 
         let ticket = extract_ticket(&branch).ok_or(Error::NoJiraTicket(branch.to_string()))?;

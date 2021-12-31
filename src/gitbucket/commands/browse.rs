@@ -1,6 +1,6 @@
-use bitbucket::get_current_repo_id;
-use common_git::{get_current_branch, BaseUrlConfig, Repository};
-use error::Error;
+use crate::bitbucket::get_current_repo_id;
+use crate::common_git::{get_current_branch, BaseUrlConfig, Repository};
+use crate::error::Error;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 

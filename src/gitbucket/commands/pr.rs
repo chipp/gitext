@@ -1,12 +1,12 @@
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
-use bitbucket::{get_bitbucket_remote, get_current_repo_id, Client, PullRequest, RepoId};
-use common_git::{
+use crate::bitbucket::{get_bitbucket_remote, get_current_repo_id, Client, PullRequest, RepoId};
+use crate::common_git::{
     fetch_remote, find_remote_branch, get_current_branch, switch_to_existing_branch,
     switch_to_local_branch, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig,
 };
-use error::Error;
+use crate::error::Error;
 use git2::{Error as GitError, ErrorClass, ErrorCode, Oid, Repository};
 use url::Url;
 

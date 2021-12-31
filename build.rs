@@ -6,9 +6,11 @@ use std::path::Path;
 fn main() {
     let mut commands = HashSet::new();
     commands.extend(read_commands_in_path("src/commands"));
-    commands.extend(read_commands_in_path("../gitbucket/src/commands"));
+    commands.extend(read_commands_in_path("src/gitbucket/commands"));
 
     let wrappers_path = Path::new("./wrappers");
+
+    let _ = fs::remove_dir(&wrappers_path);
     let _ = fs::create_dir(&wrappers_path);
 
     for command in commands {
