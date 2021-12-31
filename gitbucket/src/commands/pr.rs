@@ -1,17 +1,14 @@
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
-use crate::Error;
 use bitbucket::{get_bitbucket_remote, get_current_repo_id, Client, PullRequest, RepoId};
-use common_git::{get_current_branch, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
-use git2::{
-    build::CheckoutBuilder, Branch, BranchType, Error as GitError, ErrorClass, ErrorCode, Oid,
-    Remote, Repository,
+use common_git::{
+    fetch_remote, find_remote_branch, get_current_branch, switch_to_existing_branch,
+    switch_to_local_branch, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig,
 };
+use error::Error;
+use git2::{Error as GitError, ErrorClass, ErrorCode, Oid, Repository};
 use url::Url;
-
-mod credential_helper;
-use credential_helper::CredentialHelper;
 
 pub struct Pr;
 
@@ -80,7 +77,7 @@ impl Pr {
                     let client = Client::new(config);
                     let pr = client.get_pr_by_id(id, &repo_id).await?;
 
-                    super::Prs::print_table_for_prs(&[pr], config).await;
+                    super::prs::Prs::print_table_for_prs(&[pr], config).await;
 
                     Ok(())
                 } else {
@@ -90,7 +87,7 @@ impl Pr {
                         .await?;
                     prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
 
-                    super::Prs::print_table_for_prs(&prs, config).await;
+                    super::prs::Prs::print_table_for_prs(&prs, config).await;
 
                     Ok(())
                 }
@@ -173,10 +170,10 @@ impl Pr {
     {
         let branch_name: &str = &pr.from_ref.display_id;
         let mut remote = get_bitbucket_remote(&repo, config).unwrap();
-        Self::fetch_remote(&mut remote, config)?;
+        fetch_remote(&mut remote, config)?;
 
-        match Self::find_remote_branch(branch_name, &remote, &repo) {
-            Ok(remote_branch) => Self::switch_to_existing_branch(branch_name, remote_branch, repo),
+        match find_remote_branch(branch_name, &remote, &repo) {
+            Ok(remote_branch) => switch_to_existing_branch(branch_name, remote_branch, repo),
             Err(err)
                 if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
             {
@@ -185,90 +182,9 @@ impl Pr {
                 let commit = repo.find_commit(id)?;
 
                 let local_branch = repo.branch(&pr.from_ref.display_id, &commit, false)?;
-                Self::switch_to_local_branch(local_branch, &repo)
+                switch_to_local_branch(local_branch, &repo)
             }
             Err(err) => Err(err),
         }
-    }
-
-    fn fetch_remote<Conf>(remote: &mut Remote, config: &Conf) -> Result<(), GitError>
-    where
-        Conf: AuthDomainConfig,
-    {
-        use git2::RemoteCallbacks;
-
-        println!("fetching remote {}", remote.name().unwrap());
-
-        let mut credential_helper = CredentialHelper::new();
-
-        let mut callbacks = RemoteCallbacks::new();
-        callbacks.credentials(move |url, username_from_url, allowed_types| {
-            credential_helper.credentials(url, username_from_url, allowed_types, config)
-        });
-
-        let mut fo = git2::FetchOptions::new();
-        fo.remote_callbacks(callbacks);
-
-        remote.fetch(&[], Some(&mut fo), None)?;
-        Ok(())
-    }
-
-    fn find_remote_branch<'repo>(
-        branch_name: &str,
-        remote: &Remote,
-        repo: &'repo Repository,
-    ) -> Result<Branch<'repo>, GitError> {
-        let remote_name = remote.name().unwrap();
-        let branch_name = format!("{}/{}", remote_name, branch_name);
-
-        let branch = repo.find_branch(&branch_name, BranchType::Remote)?;
-
-        println!("found remote branch {}", branch.name().unwrap().unwrap());
-
-        Ok(branch)
-    }
-
-    fn switch_to_existing_branch(
-        branch_name: &str,
-        remote_branch: Branch,
-        repo: &Repository,
-    ) -> Result<(), GitError> {
-        match repo.find_branch(branch_name, BranchType::Local) {
-            Ok(local_branch) => Self::switch_to_local_branch(local_branch, &repo),
-            Err(err)
-                if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
-            {
-                println!(
-                    "creating a local branch from remote branch {}",
-                    remote_branch.name().unwrap().unwrap()
-                );
-
-                let commit = remote_branch.get().peel_to_commit()?;
-
-                let mut local_branch = repo.branch(branch_name, &commit, false)?;
-                local_branch.set_upstream(remote_branch.name().unwrap())?;
-
-                Self::switch_to_local_branch(local_branch, &repo)
-            }
-            Err(err) => Err(err),
-        }
-    }
-
-    fn switch_to_local_branch(branch: Branch, repo: &Repository) -> Result<(), GitError> {
-        println!(
-            "switching to local branch {}",
-            branch.name().unwrap().unwrap()
-        );
-
-        let reference = branch.get();
-        let commit = reference.peel_to_commit()?;
-
-        let mut checkout_builder = CheckoutBuilder::new();
-        checkout_builder.safe();
-
-        repo.checkout_tree(commit.as_object(), Some(&mut checkout_builder))?;
-        repo.set_head(&reference.name().unwrap())?;
-
-        Ok(())
     }
 }

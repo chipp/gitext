@@ -1,5 +1,4 @@
-use common_git::GetConfigError;
-use git2::Error as GitError;
+use common_git::{GetConfigError, GitError};
 use http_client::Error as HttpError;
 use std::error::Error as StdError;
 use std::io::Error as IoError;

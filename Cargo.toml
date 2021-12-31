@@ -3,6 +3,8 @@
 members = [
     "gitext",
     "common_git",
+    "error",
 
-    "bitbucket"
+    "bitbucket",
+    "gitbucket"
 ]

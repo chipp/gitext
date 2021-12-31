@@ -1,5 +1,5 @@
-use crate::Error;
 use common_git::{AuthDomainConfig, JiraUrlConfig};
+use error::Error;
 use http_client::{curl::easy::Auth, Error as HttpError, HttpClient};
 use serde::Deserialize;
 

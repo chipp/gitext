@@ -1,6 +1,6 @@
-use crate::Error;
 use bitbucket::{get_current_repo_id, Client, PullRequest};
-use common_git::{AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
+use common_git::{extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
+use error::Error;
 use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
 use std::collections::HashMap;
@@ -112,8 +112,7 @@ impl Prs {
             row.add_cell(cell!(pr.to_ref.display_id));
             row.add_cell(cell!(updated));
 
-            let status = super::Ticket::extract_ticket(&pr.from_ref.id)
-                .ok()
+            let status = extract_ticket(&pr.from_ref.id)
                 .and_then(|ticket| tickets.get(ticket))
                 .unwrap_or(&na);
 
@@ -144,7 +143,7 @@ impl Prs {
 
         let mut tickets = prs
             .iter()
-            .filter_map(|pr| super::Ticket::extract_ticket(&pr.from_ref.id).ok())
+            .filter_map(|pr| extract_ticket(&pr.from_ref.id))
             .collect::<Vec<_>>();
         tickets.dedup();
 

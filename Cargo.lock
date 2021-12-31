@@ -155,8 +155,11 @@ dependencies = [
 name = "common_git"
 version = "0.1.0"
 dependencies = [
+ "auth",
  "dirs 2.0.2",
  "git2",
+ "regex",
+ "rpassword",
  "url",
 ]
 
@@ -283,6 +286,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
+name = "error"
+version = "0.1.0"
+dependencies = [
+ "common_git",
+ "http_client",
+ "url",
+]
+
+[[package]]
 name = "form_urlencoded"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -387,7 +399,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gitext"
+name = "gitbucket"
 version = "0.1.0"
 dependencies = [
  "auth",
@@ -398,14 +410,29 @@ dependencies = [
  "curl",
  "curl-sys",
  "dirs 2.0.2",
- "futures-executor",
+ "error",
  "git2",
  "http_client",
  "prettytable-rs",
- "regex",
- "rpassword",
  "serde",
  "textwrap",
+ "url",
+]
+
+[[package]]
+name = "gitext"
+version = "0.1.0"
+dependencies = [
+ "auth",
+ "bitbucket",
+ "common_git",
+ "curl",
+ "curl-sys",
+ "error",
+ "futures-executor",
+ "git2",
+ "gitbucket",
+ "http_client",
  "url",
 ]
 
