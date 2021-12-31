@@ -36,8 +36,8 @@ dependencies = [
 
 [[package]]
 name = "auth"
-version = "1.0.0"
-source = "git+https://github.com/chipp/auth?tag=2.0.0#9dadcb17e2d6ca0c4af2870423258760f9d5a1d5"
+version = "2.0.0"
+source = "git+https://github.com/chipp/auth?tag=2.0.0#6af56694d21f08d8c6a9a856d9599f79d085d656"
 dependencies = [
  "core-foundation",
  "rpassword",
@@ -387,7 +387,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gitbucket"
+name = "gitext"
 version = "0.1.0"
 dependencies = [
  "auth",

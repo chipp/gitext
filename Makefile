@@ -2,8 +2,8 @@
 
 install:
 	cargo test --release
-	cargo install --path gitbucket --force --locked
-	install -m 755 $(wildcard gitbucket/wrappers/git-*) ~/.cargo/bin/
+	cargo install --path gitext --force --locked
+	install -m 755 $(wildcard gitext/wrappers/git-*) ~/.cargo/bin/
 
 clean:
 	cargo clean --release
@@ -16,6 +16,6 @@ clean_archive:
 
 archive: build clean_archive
 	mkdir archive
-	cp -r gitbucket/wrappers archive/
-	cp target/release/gitbucket install/Makefile archive
-	pushd archive; tar -zcvf ../gitbucket.tgz .; popd
+	cp -r gitext/wrappers archive/
+	cp target/release/gitext install/Makefile archive
+	pushd archive; tar -zcvf ../gitext.tgz .; popd

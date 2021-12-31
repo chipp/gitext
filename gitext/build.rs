@@ -29,7 +29,7 @@ fn main() {
             &file_path,
             format!(
                 "#!/bin/sh
-gitbucket {} $@
+gitext {} $@
 ",
                 command
             ),

@@ -1,6 +1,6 @@
 .DS_Store
 /target
 **/*.rs.bk
-gitbucket/wrappers
+gitext/wrappers
 archive
 *.tgz
