@@ -1,25 +1,36 @@
 use bitbucket::Client;
+use common_git::{AuthDomainConfig, BaseUrlConfig};
 
 use crate::Error;
 
 pub struct Auth;
 
 impl Auth {
-    pub async fn handle(_args: std::env::Args) -> Result<(), Error> {
-        match Self::print_whoami().await {
+    pub async fn handle<Conf>(_args: std::env::Args, config: Conf) -> Result<(), Error>
+    where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: BaseUrlConfig,
+    {
+        match Self::print_whoami(&config).await {
             Ok(_) => Ok(()),
             Err(_) => {
-                auth::reset_token();
-                Self::print_whoami()
+                auth::reset_user_and_pass(config.auth_domain());
+                Self::print_whoami(&config)
                     .await
                     .map_err(|_| Error::AuthorizationError)
             }
         }
     }
 
-    async fn print_whoami() -> Result<(), http_client::Error> {
-        let client = Client::new();
-        match client.whoami().await {
+    async fn print_whoami<Conf>(config: &Conf) -> Result<(), http_client::Error>
+    where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: BaseUrlConfig,
+    {
+        let client = Client::new(config);
+        let (username, _) = auth::user_and_password(config.auth_domain());
+
+        match client.whoami(&username).await {
             Ok(user) => {
                 println!("You're logged in as {}", user.display_name);
                 Ok(())

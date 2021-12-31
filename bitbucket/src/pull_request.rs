@@ -1,9 +1,8 @@
-use crate::repo_id::SERVER_URL;
+use super::user::Actor;
 use chrono::serde::ts_milliseconds;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use url::Url;
-use super::user::Actor;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,8 +54,8 @@ pub struct Project {
 }
 
 impl PullRequest {
-    pub fn url(&self) -> Url {
-        let mut url = Url::parse(SERVER_URL).unwrap();
+    pub fn url(&self, base_url: &Url) -> Url {
+        let mut url = base_url.clone();
 
         {
             let mut segments = url.path_segments_mut().unwrap();
@@ -74,8 +73,8 @@ impl PullRequest {
 
 #[cfg(test)]
 mod tests {
-    use crate::user::User;
     use super::*;
+    use crate::user::User;
 
     #[test]
     fn url() {
@@ -123,7 +122,8 @@ mod tests {
         };
 
         assert_eq!(
-            pr.url().as_str(),
+            pr.url(&Url::parse("https://bitbucket.company.com").unwrap())
+                .as_str(),
             "https://bitbucket.company.com/projects/VB/repos/gitbucket/pull-requests/42"
         )
     }

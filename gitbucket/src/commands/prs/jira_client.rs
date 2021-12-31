@@ -1,24 +1,33 @@
-use http_client::{curl::easy::Auth, Error, HttpClient};
+use crate::Error;
+use common_git::{AuthDomainConfig, JiraUrlConfig};
+use http_client::{curl::easy::Auth, Error as HttpError, HttpClient};
 use serde::Deserialize;
 
 pub struct JiraClient<'a> {
     inner: HttpClient<'a>,
 }
 
-impl<'a> JiraClient<'a> {
-    pub fn new() -> JiraClient<'a> {
-        let mut inner = HttpClient::new("https://jira.company.com/rest").unwrap();
+impl JiraClient<'_> {
+    pub fn new<'a, Conf>(config: &'a Conf) -> Result<JiraClient<'a>, Error>
+    where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: JiraUrlConfig,
+    {
+        let jira_url = config.jira_url().ok_or(Error::JiraUrlNotConfigured)?;
 
+        let mut inner = HttpClient::new(jira_url).unwrap();
         inner.set_interceptor(move |easy| {
             let mut auth = Auth::new();
-            auth.gssnegotiate(true);
+            auth.basic(true);
             easy.http_auth(&auth).unwrap();
 
-            easy.username("").unwrap();
-            easy.password("").unwrap();
+            let (username, password) = auth::user_and_password(config.auth_domain());
+
+            easy.username(username.as_ref()).unwrap();
+            easy.password(password.as_ref()).unwrap();
         });
 
-        JiraClient { inner }
+        Ok(JiraClient { inner })
     }
 }
 
@@ -61,7 +70,7 @@ impl JiraClient<'_> {
         start_at: u16,
         max_results: u16,
         fields: Option<&[&str]>,
-    ) -> Result<IssuesPageResponse, Error> {
+    ) -> Result<IssuesPageResponse, HttpError> {
         let mut params = vec![];
 
         params.push(("startAt", format!("{}", start_at)));
@@ -74,7 +83,7 @@ impl JiraClient<'_> {
 
         let mut request = self
             .inner
-            .new_request_with_params(vec!["api", "2", "search"], &params);
+            .new_request_with_params(vec!["rest", "api", "2", "search"], &params);
         request.set_retry_count(3);
 
         self.inner

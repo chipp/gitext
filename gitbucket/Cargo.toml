@@ -4,11 +4,11 @@ version = "0.1.0"
 authors = ["Vladimir Burdukov <chippcheg@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 bitbucket = { path = "../bitbucket" }
-http_client = { git = "https://github.com/chipp/http_client", tag = "0.4.7" }
+common_git = { path = "../common_git" }
+
+http_client = { git = "https://github.com/chipp/http_client", tag = "0.4.10" }
 curl = { version = "0.4", features = ["static-ssl", "static-curl"] }
 curl-sys = { version = "0.4", features = ["static-ssl", "spnego"]}
 
@@ -18,7 +18,7 @@ futures-executor = "0.3"
 
 git2 = "0.10"
 
-auth = { path = "../auth" }
+auth = { git = "https://github.com/chipp/auth", tag = "2.0.0" }
 dirs = "2.0"
 rpassword = "4.0"
 

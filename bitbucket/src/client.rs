@@ -1,4 +1,5 @@
 use crate::{PullRequest, RepoId};
+use common_git::{AuthDomainConfig, BaseUrlConfig};
 use http_client::curl::easy::Auth;
 use http_client::{Error, HttpClient};
 use serde::Deserialize;
@@ -7,17 +8,22 @@ pub struct Client<'a> {
     inner: HttpClient<'a>,
 }
 
-const SERVER_URL: &str = "https://bitbucket.company.com/rest/api/1.0/";
-
 impl Client<'_> {
-    pub fn new<'a>() -> Client<'a> {
-        let (username, password) = auth::credentials();
+    pub fn new<'a, Conf>(config: &'a Conf) -> Client<'a>
+    where
+        Conf: BaseUrlConfig,
+        Conf: AuthDomainConfig + Send + Sync,
+    {
+        let mut base_url = config.base_url().clone();
+        base_url.set_path("/rest/api/1.0/");
 
-        let mut inner = HttpClient::new(SERVER_URL).unwrap();
+        let mut inner = HttpClient::new(base_url).unwrap();
         inner.set_interceptor(move |easy| {
             let mut auth = Auth::new();
             auth.basic(true);
             easy.http_auth(&auth).unwrap();
+
+            let (username, password) = auth::user_and_password(config.auth_domain());
 
             easy.username(username.as_ref()).unwrap();
             easy.password(password.as_ref()).unwrap();
@@ -28,9 +34,8 @@ impl Client<'_> {
 }
 
 impl Client<'_> {
-    pub async fn whoami(&self) -> Result<super::user::User, Error> {
-        let (username, _) = auth::credentials();
-        self.inner.get(vec!["users", &username]).await
+    pub async fn whoami(&self, username: &str) -> Result<super::user::User, Error> {
+        self.inner.get(vec!["users", username]).await
     }
 
     pub async fn find_open_prs(

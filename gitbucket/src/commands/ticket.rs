@@ -1,22 +1,31 @@
 use crate::Error;
-use bitbucket::{get_current_branch, get_current_repo_id};
+use bitbucket::get_current_repo_id;
+use common_git::{get_current_branch, BaseUrlConfig, JiraUrlConfig};
 use git2::Repository;
 use regex::Regex;
 use std::process::{Command, Stdio};
-use url::Url;
 
 pub struct Ticket;
 
-const JIRA_URL: &str = "https://jira.company.com";
-
 impl Ticket {
-    pub async fn handle(_args: std::env::Args, repo: Repository) -> Result<(), Error> {
-        let _ = get_current_repo_id(&repo).ok_or(Error::InvalidRepo)?;
+    pub async fn handle<Conf>(
+        _args: std::env::Args,
+        repo: Repository,
+        config: Conf,
+    ) -> Result<(), Error>
+    where
+        Conf: BaseUrlConfig,
+        Conf: JiraUrlConfig,
+    {
+        let _ = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
         let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
 
         let ticket = Ticket::extract_ticket(&branch)?;
 
-        let mut url = Url::parse(JIRA_URL).unwrap();
+        let mut url = config
+            .jira_url()
+            .cloned()
+            .ok_or(Error::JiraUrlNotConfigured)?;
 
         {
             let mut segments = url.path_segments_mut().unwrap();

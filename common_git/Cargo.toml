@@ -1,0 +1,10 @@
+[package]
+name = "common_git"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+
+git2 = { version = "0.10", default-features = false }
+dirs = "2.0"
+url = "2.0"

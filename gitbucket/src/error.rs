@@ -1,3 +1,4 @@
+use common_git::GetConfigError;
 use git2::Error as GitError;
 use http_client::Error as HttpError;
 use std::error::Error as StdError;
@@ -12,10 +13,13 @@ pub enum Error {
     InvalidRepo,
     Detached,
 
+    GetConfig(GetConfigError),
+
     Git(GitError),
     Http(HttpError),
 
     OpenUrl(IoError, url::Url),
+    JiraUrlNotConfigured,
     NoJiraTicket(String),
 
     NoPrsForBranch(String, HttpError),
@@ -33,6 +37,12 @@ impl From<GitError> for Error {
 impl From<HttpError> for Error {
     fn from(err: HttpError) -> Error {
         Error::Http(err)
+    }
+}
+
+impl From<GetConfigError> for Error {
+    fn from(err: GetConfigError) -> Self {
+        Error::GetConfig(err)
     }
 }
 
@@ -68,10 +78,13 @@ impl fmt::Display for Error {
             InvalidRepo => write!(f, "this is not a bitbucket repository"),
             Detached => write!(f, "can't find the current branch"),
 
+            GetConfig(err) => write!(f, "{}", err),
+
             Git(err) => write!(f, "{}", err),
             Http(err) => write!(f, "{}", err),
 
             OpenUrl(err, url) => write!(f, "can't open URL {}: {}", url, err),
+            JiraUrlNotConfigured => write!(f, "JIRA url is not specified in .git/config"),
             NoJiraTicket(branch) => {
                 write!(f, "can't find JIRA ticket in branch name \"{}\"", branch)
             }

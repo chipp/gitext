@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
+    "common_git",
     "bitbucket",
-    "gitbucket",
-    "auth"
+    "gitbucket"
 ]

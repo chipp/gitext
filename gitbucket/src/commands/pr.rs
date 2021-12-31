@@ -1,13 +1,13 @@
+use std::process::{Command, Stdio};
+use std::str::FromStr;
+
 use crate::Error;
-use bitbucket::{
-    get_bitbucket_remote, get_current_branch, get_current_repo_id, Client, PullRequest, RepoId,
-};
+use bitbucket::{get_bitbucket_remote, get_current_repo_id, Client, PullRequest, RepoId};
+use common_git::{get_current_branch, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
 use git2::{
     build::CheckoutBuilder, Branch, BranchType, Error as GitError, ErrorClass, ErrorCode, Oid,
     Remote, Repository,
 };
-use std::process::{Command, Stdio};
-use std::str::FromStr;
 use url::Url;
 
 mod credential_helper;
@@ -16,37 +16,48 @@ use credential_helper::CredentialHelper;
 pub struct Pr;
 
 impl Pr {
-    pub async fn handle(args: std::env::Args, repo: Repository) -> Result<(), Error> {
-        let repo_id = get_current_repo_id(&repo).ok_or(Error::InvalidRepo)?;
+    pub async fn handle<C>(args: std::env::Args, repo: Repository, config: C) -> Result<(), Error>
+    where
+        C: AuthDomainConfig + Send + Sync,
+        C: BaseUrlConfig,
+        C: JiraUrlConfig,
+    {
+        let repo_id = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
         let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
 
         let mut args = args;
 
         if let Some(arg) = args.next() {
-            Self::handle_argument(arg, args.next(), repo_id, branch, repo).await
+            Self::handle_argument(arg, args.next(), repo_id, branch, repo, &config).await
         } else {
-            let existing_pr = Self::find_existing_pr(&branch, &repo_id).await?;
+            let existing_pr = Self::find_existing_pr(&branch, &repo_id, &config).await?;
 
             let url = existing_pr
-                .map(|pr| pr.url())
-                .unwrap_or_else(|| Self::url_for_create(&branch, &repo_id));
+                .map(|pr| pr.url(&config.base_url()))
+                .unwrap_or_else(|| Self::url_for_create(&branch, &repo_id, &config));
 
             Self::open_url(url)
         }
     }
 
-    async fn handle_argument(
+    async fn handle_argument<Conf>(
         command: String,
         id: Option<String>,
         repo_id: RepoId,
         branch: String,
         repo: Repository,
-    ) -> Result<(), Error> {
+        config: &Conf,
+    ) -> Result<(), Error>
+    where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: BaseUrlConfig,
+        Conf: JiraUrlConfig,
+    {
         match command.as_str() {
-            "new" | "n" => Self::open_url(Self::url_for_create(&branch, &repo_id)),
+            "new" | "n" => Self::open_url(Self::url_for_create(&branch, &repo_id, config)),
             "browse" | "b" => {
                 if let Some(id) = id {
-                    let mut url = repo_id.url();
+                    let mut url = repo_id.url(config.base_url());
 
                     {
                         let mut segments = url.path_segments_mut().unwrap();
@@ -66,20 +77,20 @@ impl Pr {
                 if let Some(id) = id {
                     let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id))?;
 
-                    let client = Client::new();
+                    let client = Client::new(config);
                     let pr = client.get_pr_by_id(id, &repo_id).await?;
 
-                    super::Prs::print_table_for_prs(&[pr]).await;
+                    super::Prs::print_table_for_prs(&[pr], config).await;
 
                     Ok(())
                 } else {
-                    let client = Client::new();
+                    let client = Client::new(config);
                     let mut prs = client
                         .find_prs_for_branch(&branch, &repo_id, "OPEN")
                         .await?;
                     prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
 
-                    super::Prs::print_table_for_prs(&prs).await;
+                    super::Prs::print_table_for_prs(&prs, config).await;
 
                     Ok(())
                 }
@@ -88,13 +99,13 @@ impl Pr {
                 let id = id.ok_or(Error::InvalidPrId("empty".to_string()))?;
                 let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id))?;
 
-                let client = Client::new();
+                let client = Client::new(config);
                 let pr = client
                     .get_pr_by_id(id, &repo_id)
                     .await
                     .map_err(|err| Error::NoPrWithId(id, err))?;
 
-                Self::switch_to_branch(&pr, &repo)?;
+                Self::switch_to_branch(&pr, &repo, config)?;
 
                 Ok(())
             }
@@ -106,11 +117,16 @@ impl Pr {
 const SUPPORTED_COMMANDS: [&str; 3] = ["new", "info", "checkout"];
 
 impl Pr {
-    async fn find_existing_pr(
+    async fn find_existing_pr<Conf>(
         branch: &str,
         repo_id: &RepoId,
-    ) -> Result<Option<PullRequest>, Error> {
-        let client = Client::new();
+        config: &Conf,
+    ) -> Result<Option<PullRequest>, Error>
+    where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: BaseUrlConfig,
+    {
+        let client = Client::new(config);
         let prs = client.find_prs_for_branch(&branch, &repo_id, "ALL").await;
 
         let mut prs = prs.map_err(|err| Error::NoPrsForBranch(branch.to_string(), err))?;
@@ -119,8 +135,8 @@ impl Pr {
         Ok(prs.into_iter().next())
     }
 
-    fn url_for_create(branch: &str, repo_id: &RepoId) -> Url {
-        let mut url = repo_id.url();
+    fn url_for_create(branch: &str, repo_id: &RepoId, config: &dyn BaseUrlConfig) -> Url {
+        let mut url = repo_id.url(&config.base_url());
 
         {
             let mut segments = url.path_segments_mut().unwrap();
@@ -146,10 +162,18 @@ impl Pr {
 }
 
 impl Pr {
-    fn switch_to_branch(pr: &PullRequest, repo: &Repository) -> Result<(), GitError> {
+    fn switch_to_branch<Conf>(
+        pr: &PullRequest,
+        repo: &Repository,
+        config: &Conf,
+    ) -> Result<(), GitError>
+    where
+        Conf: AuthDomainConfig,
+        Conf: BaseUrlConfig,
+    {
         let branch_name: &str = &pr.from_ref.display_id;
-        let mut remote = get_bitbucket_remote(&repo).unwrap();
-        Self::fetch_remote(&mut remote)?;
+        let mut remote = get_bitbucket_remote(&repo, config).unwrap();
+        Self::fetch_remote(&mut remote, config)?;
 
         match Self::find_remote_branch(branch_name, &remote, &repo) {
             Ok(remote_branch) => Self::switch_to_existing_branch(branch_name, remote_branch, repo),
@@ -167,7 +191,10 @@ impl Pr {
         }
     }
 
-    fn fetch_remote(remote: &mut Remote) -> Result<(), GitError> {
+    fn fetch_remote<Conf>(remote: &mut Remote, config: &Conf) -> Result<(), GitError>
+    where
+        Conf: AuthDomainConfig,
+    {
         use git2::RemoteCallbacks;
 
         println!("fetching remote {}", remote.name().unwrap());
@@ -176,7 +203,7 @@ impl Pr {
 
         let mut callbacks = RemoteCallbacks::new();
         callbacks.credentials(move |url, username_from_url, allowed_types| {
-            credential_helper.credentials(url, username_from_url, allowed_types)
+            credential_helper.credentials(url, username_from_url, allowed_types, config)
         });
 
         let mut fo = git2::FetchOptions::new();

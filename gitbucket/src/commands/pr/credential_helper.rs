@@ -1,3 +1,4 @@
+use common_git::AuthDomainConfig;
 use git2::{Cred, CredentialType, Error};
 use rpassword::prompt_password_stdout;
 
@@ -27,6 +28,7 @@ impl CredentialHelper {
         url: &str,
         username_from_url: Option<&str>,
         allowed_types: CredentialType,
+        config: &dyn AuthDomainConfig,
     ) -> Result<Cred, Error> {
         match self.state {
             Initialized => println!("requested authorization for url {}", url),
@@ -48,7 +50,7 @@ impl CredentialHelper {
                 }
             }
         } else if allowed_types.is_user_pass_plaintext() {
-            let (username, password) = auth::credentials();
+            let (username, password) = auth::user_and_password(&config.auth_domain());
             self.state = UserPass;
 
             Cred::userpass_plaintext(&username, &password)

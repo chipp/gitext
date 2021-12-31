@@ -7,12 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+common_git = { path = "../common_git" }
+
 git2 = { version = "0.10", default-features = false }
 dirs = "2.0"
 url = "2.0"
 
-auth = { path = "../auth" }
-http_client = { git = "https://github.com/chipp/http_client", tag = "0.4.7" }
+auth = { git = "https://github.com/chipp/auth", tag = "2.0.0" }
+http_client = { git = "https://github.com/chipp/http_client", tag = "0.4.10" }
 curl = { version = "0.4", features = ["static-ssl", "static-curl"] }
 
 serde = { version = "1.0", features = ["derive"] }
