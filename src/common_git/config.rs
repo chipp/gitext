@@ -6,9 +6,12 @@ use url::Url;
 #[derive(Debug)]
 pub struct Config {
     pub provider: Provider,
+
     pub base_url: Url,
-    pub jira_url: Option<Url>,
     pub auth_domain: String,
+
+    pub jira_url: Option<Url>,
+    pub jira_auth_domain: Option<String>,
 }
 
 pub trait BaseUrlConfig {
@@ -41,15 +44,27 @@ impl JiraUrlConfig for Config {
     }
 }
 
+pub trait JiraAuthDomainConfig {
+    fn jira_auth_domain(&self) -> Option<&str>;
+}
+
+impl JiraAuthDomainConfig for Config {
+    fn jira_auth_domain(&self) -> Option<&str> {
+        self.jira_auth_domain.as_ref().map(String::as_str)
+    }
+}
+
 #[derive(Debug)]
 pub enum Provider {
     BitBucket,
+    GitLab,
 }
 
 impl Provider {
     fn parse_from_str(raw: &str) -> Option<Self> {
         match raw.to_lowercase().as_str() {
             "bitbucket" => Some(Provider::BitBucket),
+            "gitlab" => Some(Provider::GitLab),
             _ => None,
         }
     }
@@ -101,31 +116,36 @@ pub fn get_config(repo: &Repository) -> Result<Config, GetConfigError> {
     let config = repo.config().unwrap();
 
     let provider = config
-        .get_string("gitbucket.provider")
+        .get_string("gitext.provider")
         .map_err(|_| GetConfigError::ProviderNotSpecified)?;
     let provider =
         Provider::parse_from_str(&provider).ok_or(GetConfigError::UnknownProvider(provider))?;
 
     let base_url = config
-        .get_string("gitbucket.baseurl")
+        .get_string("gitext.baseurl")
         .map_err(|_| GetConfigError::BaseUrlNotSpecified)?;
     let base_url = Url::parse(&base_url).map_err(|_| GetConfigError::InvalidBaseUrl(base_url))?;
-
-    let jira_url = config.get_string("gitbucket.jiraurl").ok();
-    let jira_url = jira_url.and_then(|string| Url::parse(&string).ok());
 
     if base_url.host().is_none() {
         return Err(GetConfigError::InvalidBaseUrl(base_url.into()));
     }
 
     let auth_domain = config
-        .get_string("gitbucket.authdomain")
+        .get_string("gitext.authdomain")
         .unwrap_or(String::from(base_url.host_str().unwrap()));
+
+    let jira_url = config.get_string("gitext.jiraurl").ok();
+    let jira_url = jira_url.and_then(|string| Url::parse(&string).ok());
+
+    let jira_auth_domain = config.get_string("gitext.jiraauthdomain").ok().or(jira_url
+        .as_ref()
+        .map(|url| String::from(url.host_str().unwrap())));
 
     Ok(Config {
         provider,
         base_url,
-        jira_url,
         auth_domain,
+        jira_url,
+        jira_auth_domain,
     })
 }

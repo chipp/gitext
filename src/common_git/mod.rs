@@ -2,7 +2,7 @@ mod config;
 mod credential_helper;
 
 pub use config::{get_config, Config, GetConfigError, Provider};
-pub use config::{AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
+pub use config::{AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig};
 pub use credential_helper::CredentialHelper;
 use git2::build::CheckoutBuilder;
 pub use git2::{Error as GitError, Repository};

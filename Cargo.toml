@@ -11,11 +11,11 @@ curl-sys = { version = "0.4", features = ["static-ssl", "spnego"]}
 
 futures-executor = "0.3"
 
-url = "2.0"
+url = { version = "2.0", features = ["serde"] }
 git2 = { version = "0.10", default-features = false }
 dirs = "2.0"
 
-auth = { git = "https://github.com/chipp/auth", tag = "2.0.0" }
+auth = { git = "https://github.com/chipp/auth", tag = "2.0.1" }
 
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -28,3 +28,6 @@ rpassword = "4.0"
 
 prettytable-rs = "^0.8"
 textwrap = { version = "0.12" }
+
+[dev-dependencies]
+serde_json = "*"

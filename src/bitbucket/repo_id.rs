@@ -10,20 +10,17 @@ pub struct RepoId {
 pub struct InvalidRepoId;
 
 impl RepoId {
-    pub fn from_str_with_host(
-        remote_url: &str,
-        config_base_url: &Url,
-    ) -> Result<RepoId, InvalidRepoId> {
-        Self::from_url(remote_url, config_base_url)
-            .or_else(|| Self::from_scp(remote_url, config_base_url))
+    pub fn from_str_with_host(remote_url: &str, base_url: &Url) -> Result<RepoId, InvalidRepoId> {
+        Self::from_url(remote_url, base_url)
+            .or_else(|| Self::from_scp(remote_url, base_url))
             .ok_or(InvalidRepoId)
     }
 
-    fn from_url(url: &str, config_base_url: &Url) -> Option<RepoId> {
+    fn from_url(url: &str, base_url: &Url) -> Option<RepoId> {
         let url = Url::parse(url).ok()?;
 
         if let Some(host) = url.host_str() {
-            if host != config_base_url.host_str().unwrap() {
+            if host != base_url.host_str().unwrap() {
                 return None;
             }
         }
@@ -43,7 +40,7 @@ impl RepoId {
         })
     }
 
-    fn from_scp(url: &str, config_base_url: &Url) -> Option<RepoId> {
+    fn from_scp(url: &str, base_url: &Url) -> Option<RepoId> {
         let (server, path) = crate::split_once!(url, ":")?;
 
         let host = match crate::split_once!(server, "@") {
@@ -51,7 +48,7 @@ impl RepoId {
             None => url,
         };
 
-        if host != config_base_url.host_str().unwrap() {
+        if host != base_url.host_str().unwrap() {
             return None;
         }
 

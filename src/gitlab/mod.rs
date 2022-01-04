@@ -1,14 +1,18 @@
-mod client;
-mod pull_request;
 mod repo_id;
-mod user;
 
-pub use client::Client;
-pub use pull_request::PullRequest;
 pub use repo_id::RepoId;
 
-use crate::common_git::BaseUrlConfig;
+mod client;
+pub use client::Client;
+
+mod pull_request;
+pub use pull_request::PullRequest;
+
+mod user;
+
 use git2::{Remote, Repository};
+
+use crate::common_git::BaseUrlConfig;
 
 pub fn get_current_repo_id<Conf>(repo: &Repository, config: &Conf) -> Option<RepoId>
 where
@@ -22,10 +26,7 @@ where
     })
 }
 
-pub fn get_bitbucket_remote<'r, 'c, Conf>(
-    repo: &'r Repository,
-    config: &'c Conf,
-) -> Option<Remote<'r>>
+pub fn get_gitlab_remote<'r, 'c, Conf>(repo: &'r Repository, config: &'c Conf) -> Option<Remote<'r>>
 where
     Conf: BaseUrlConfig,
 {

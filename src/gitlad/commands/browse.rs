@@ -1,9 +1,9 @@
+use crate::common_git::{get_current_branch, BaseUrlConfig};
+use crate::gitlab::get_current_repo_id;
+use crate::Error;
+use git2::Repository;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
-
-use crate::bitbucket::get_current_repo_id;
-use crate::common_git::{get_current_branch, BaseUrlConfig, Repository};
-use crate::error::Error;
 
 pub struct Browse;
 
@@ -33,11 +33,17 @@ impl Browse {
                 (Some("pr"), Some(id)) => {
                     let parsed_id =
                         u16::from_str(&id).map_err(|_| Error::InvalidPrId(id.to_string()))?;
-                    segments.push("pull-requests");
+                    segments.push("-");
+                    segments.push("merge_requests");
                     segments.push(&format!("{}", parsed_id));
                 }
                 _ => {
-                    segments.push("browse");
+                    segments.push("-");
+                    segments.push("tree");
+
+                    for component in branch.split("/") {
+                        segments.push(&component);
+                    }
 
                     let current_path = std::path::Path::new(path);
                     let relative_path = repo
@@ -55,8 +61,6 @@ impl Browse {
                 }
             }
         }
-
-        url.query_pairs_mut().append_pair("at", &branch);
 
         Command::new("open")
             .arg(url.as_str())

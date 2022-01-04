@@ -1,4 +1,4 @@
-use crate::common_git::{AuthDomainConfig, JiraUrlConfig};
+use crate::common_git::{JiraAuthDomainConfig, JiraUrlConfig};
 use crate::error::Error;
 use http_client::{curl::easy::Auth, Error as HttpError, HttpClient};
 use serde::Deserialize;
@@ -10,10 +10,13 @@ pub struct JiraClient<'a> {
 impl JiraClient<'_> {
     pub fn new<'a, Conf>(config: &'a Conf) -> Result<JiraClient<'a>, Error>
     where
-        Conf: AuthDomainConfig + Send + Sync,
+        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
         let jira_url = config.jira_url().ok_or(Error::JiraUrlNotConfigured)?;
+        let jira_auth_domain = config
+            .jira_auth_domain()
+            .ok_or(Error::JiraUrlNotConfigured)?;
 
         let mut inner = HttpClient::new(jira_url).unwrap();
         inner.set_interceptor(move |easy| {
@@ -21,7 +24,7 @@ impl JiraClient<'_> {
             auth.basic(true);
             easy.http_auth(&auth).unwrap();
 
-            let (username, password) = auth::user_and_password(config.auth_domain());
+            let (username, password) = auth::user_and_password(jira_auth_domain);
 
             easy.username(username.as_ref()).unwrap();
             easy.password(password.as_ref()).unwrap();

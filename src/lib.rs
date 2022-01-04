@@ -4,10 +4,16 @@ mod commands {
 
 pub use commands::ticket::Ticket;
 
-mod bitbucket;
 mod common_git;
 mod error;
+mod jira;
+mod split_once;
+
+mod bitbucket;
 mod gitbucket;
+
+mod gitlab;
+mod gitlad;
 
 pub use error::Error;
 
@@ -15,6 +21,7 @@ use common_git::{get_config, get_repo, Provider::*};
 use gitbucket::{
     Auth as GitBucketAuth, Browse as GitBucketBrowse, Pr as GitBucketPr, Prs as GitBucketPrs,
 };
+use gitlad::{Auth as GitLadAuth, Browse as GitLadBrowse, Pr as GitLadPr, Prs as GitLadPrs};
 use std::env::Args;
 
 pub async fn handle(args: Args) -> Result<(), Error> {
@@ -33,6 +40,11 @@ pub async fn handle(args: Args) -> Result<(), Error> {
         (Some("auth"), BitBucket) => GitBucketAuth::handle(args, config).await,
         (Some("pr"), BitBucket) => GitBucketPr::handle(args, repo, config).await,
         (Some("prs"), BitBucket) => GitBucketPrs::handle(args, repo, config).await,
+
+        (Some("browse"), GitLab) => GitLadBrowse::handle(args, repo, config, &path).await,
+        (Some("auth"), GitLab) => GitLadAuth::handle(args, config).await,
+        (Some("pr"), GitLab) => GitLadPr::handle(args, repo, config).await,
+        (Some("prs"), GitLab) => GitLadPrs::handle(args, repo, config).await,
 
         (Some("ticket"), _) => Ticket::handle(args, repo, config).await,
         (Some(command), _) => Err(Error::UnknownCommand(command.to_string())),

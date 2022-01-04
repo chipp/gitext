@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use url::Url;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PullRequest {
     pub id: u16,
@@ -23,7 +23,7 @@ pub struct PullRequest {
     pub state: PullRequestState,
 }
 
-#[derive(Deserialize, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PullRequestState {
     Open,
@@ -31,7 +31,7 @@ pub enum PullRequestState {
     Declined,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Ref {
     pub display_id: String,
@@ -40,14 +40,14 @@ pub struct Ref {
     pub repository: Repository,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Repository {
     pub slug: String,
     pub id: u16,
     pub project: Project,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Project {
     pub key: String,
     pub id: u16,

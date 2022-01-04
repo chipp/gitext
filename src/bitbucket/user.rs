@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: u16,
@@ -8,7 +8,7 @@ pub struct User {
     pub display_name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Actor {
     pub user: User,
     pub approved: bool,

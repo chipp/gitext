@@ -23,13 +23,16 @@ impl CredentialHelper {
         }
     }
 
-    pub fn credentials(
+    pub fn credentials<Conf>(
         &mut self,
         url: &str,
         username_from_url: Option<&str>,
         allowed_types: CredentialType,
-        config: &dyn AuthDomainConfig,
-    ) -> Result<Cred, Error> {
+        config: &Conf,
+    ) -> Result<Cred, Error>
+    where
+        Conf: AuthDomainConfig,
+    {
         match self.state {
             Initialized => println!("requested authorization for url {}", url),
             _ => (),

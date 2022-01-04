@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::bitbucket::{get_current_repo_id, Client, PullRequest};
 use crate::common_git::{
     extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
-use crate::error::Error;
+use crate::gitlab::{get_current_repo_id, Client, PullRequest};
 use crate::jira::JiraClient;
+use crate::Error;
 
 use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
@@ -25,29 +25,26 @@ impl Prs {
         Conf: JiraUrlConfig,
     {
         let repo_id = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
+        let client = Client::new(&config);
 
         let mut args = args;
         let author = if let Some("my") = args.next().as_ref().map(AsRef::<str>::as_ref) {
-            let (username, _) = auth::user_and_password(config.auth_domain());
-            Some(username)
+            let user = client.whoami().await?;
+            Some(user.name)
         } else {
             None
         };
 
-        let client = Client::new(&config);
         let prs = client.find_open_prs(&repo_id, author).await?;
-
-        Self::print_table_for_prs(&prs.values, &config).await;
+        Self::print_table_for_prs(&prs, &config).await;
 
         Ok(())
     }
 
     pub async fn print_table_for_prs<Conf>(prs: &[PullRequest], config: &Conf)
     where
-        Conf: AuthDomainConfig + Send + Sync,
-        Conf: BaseUrlConfig,
-        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
+        Conf: JiraAuthDomainConfig + Send + Sync,
     {
         if prs.is_empty() {
             println!("No PRs for that branch");
@@ -60,7 +57,7 @@ impl Prs {
             "Author",
             "Title",
             "CI",
-            "Approvals",
+            "Likes",
             "Target",
             "Last updated",
             "Jira status"
@@ -72,55 +69,32 @@ impl Prs {
         let na = String::from("N/A");
 
         for pr in prs {
-            let mut row = row![
-                pr.id,
-                pr.author.user.display_name,
-                Self::title_for_pr(&pr, 35)
-            ];
+            let mut row = row![pr.id, pr.author.display_name, Self::title_for_pr(&pr, 35)];
 
             let updated = pr.updated - chrono::Utc::now();
             let updated = chrono_humanize::HumanTime::from(updated);
 
-            if pr
-                .reviewers
-                .iter()
-                .any(|reviewer| &reviewer.user.name == "devops" && reviewer.approved)
-            {
+            if pr.labels.iter().any(|label| label == "CI OK") {
                 row.add_cell(cell!(Fg->"A"));
-            } else {
+            } else if pr.labels.iter().any(|label| label == "CI FAILED") {
                 row.add_cell(cell!(Fr->"X"));
-            }
-
-            let approvals = pr
-                .reviewers
-                .iter()
-                .filter(|reviewer| {
-                    &reviewer.user.name != "devops"
-                        && &reviewer.user.name != "ci"
-                        && reviewer.approved
-                })
-                .collect::<Vec<_>>()
-                .len();
-
-            let reviewers = pr
-                .reviewers
-                .iter()
-                .filter(|reviewer| &reviewer.user.name != "devops" && &reviewer.user.name != "ci")
-                .collect::<Vec<_>>()
-                .len();
-
-            let approvals_cell = Cell::new(&format!("{}/{}", approvals, reviewers));
-
-            if approvals >= 2 {
-                row.add_cell(approvals_cell.style_spec("Fg"));
             } else {
-                row.add_cell(approvals_cell.style_spec("Fr"));
+                row.add_cell(cell!(Fy->"I"));
             }
 
-            row.add_cell(cell!(pr.to_ref.display_id));
+            let upvotes = pr.upvotes;
+            let upvotes_cell = Cell::new(&format!("{}", upvotes));
+
+            if upvotes >= 2 {
+                row.add_cell(upvotes_cell.style_spec("Fg"));
+            } else {
+                row.add_cell(upvotes_cell.style_spec("Fr"));
+            }
+
+            row.add_cell(cell!(pr.target_branch));
             row.add_cell(cell!(updated));
 
-            let status = extract_ticket(&pr.from_ref.id)
+            let status = extract_ticket(&pr.source_branch)
                 .and_then(|ticket| tickets.get(ticket))
                 .unwrap_or(&na);
 
@@ -144,14 +118,14 @@ impl Prs {
         config: &Conf,
     ) -> Option<HashMap<String, String>>
     where
-        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
+        Conf: JiraAuthDomainConfig + Send + Sync,
     {
         let jira_client = JiraClient::new(config).ok()?;
 
         let mut tickets = prs
             .iter()
-            .filter_map(|pr| extract_ticket(&pr.from_ref.id))
+            .filter_map(|pr| extract_ticket(&pr.source_branch))
             .collect::<Vec<_>>();
         tickets.dedup();
 

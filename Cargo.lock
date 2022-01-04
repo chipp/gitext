@@ -36,8 +36,8 @@ dependencies = [
 
 [[package]]
 name = "auth"
-version = "2.0.0"
-source = "git+https://github.com/chipp/auth?tag=2.0.0#6af56694d21f08d8c6a9a856d9599f79d085d656"
+version = "2.0.1"
+source = "git+https://github.com/chipp/auth?tag=2.0.1#be4caba67c5970a7a5fd75e7c44a2f8864ae8286"
 dependencies = [
  "core-foundation",
  "rpassword",
@@ -377,6 +377,7 @@ dependencies = [
  "regex",
  "rpassword",
  "serde",
+ "serde_json",
  "textwrap",
  "url",
 ]
@@ -843,6 +844,7 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

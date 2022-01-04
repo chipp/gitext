@@ -7,6 +7,7 @@ fn main() {
     let mut commands = HashSet::new();
     commands.extend(read_commands_in_path("src/commands"));
     commands.extend(read_commands_in_path("src/gitbucket/commands"));
+    commands.extend(read_commands_in_path("src/gitlad/commands"));
 
     let wrappers_path = Path::new("./wrappers");
 

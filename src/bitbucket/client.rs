@@ -70,6 +70,9 @@ impl Client<'_> {
         repo_id: &RepoId,
         state: &str,
     ) -> Result<Vec<PullRequest>, Error> {
+        // TODO: find another way to get full branch identifier
+        let branch = format!("refs/heads/{}", branch);
+
         let response = self
             .inner
             .get_with_params(
@@ -80,7 +83,11 @@ impl Client<'_> {
                     &repo_id.name,
                     "pull-requests",
                 ],
-                &[("at", branch), ("direction", "OUTGOING"), ("state", state)],
+                &[
+                    ("at", branch.as_str()),
+                    ("direction", "OUTGOING"),
+                    ("state", state),
+                ],
             )
             .await;
 
