@@ -2,8 +2,8 @@ use url::Url;
 
 #[derive(Debug, PartialEq)]
 pub struct RepoId {
-    pub project: String,
-    pub name: String,
+    project_path: Vec<String>,
+    name: String,
 }
 
 #[derive(Debug)]
@@ -21,8 +21,7 @@ impl RepoId {
 
         {
             let mut segments = url.path_segments_mut().unwrap();
-            // TODO: handle subgroups
-            segments.push(&self.project);
+            segments.extend(self.project_path.iter());
             segments.push(&self.name);
         }
 
@@ -30,7 +29,10 @@ impl RepoId {
     }
 
     pub fn id(&self) -> String {
-        format!("{}/{}", self.project, self.name)
+        let mut components = self.project_path.clone();
+        components.push(self.name.clone());
+
+        components.join("/")
     }
 
     fn from_url(url: &str, base_url: &Url) -> Option<RepoId> {
@@ -42,17 +44,17 @@ impl RepoId {
             }
         }
 
-        let project;
-        let name;
+        let mut project_path = url.path_segments()?.collect::<Vec<_>>();
+        let name = project_path.pop()?;
 
-        {
-            let mut components = url.path_segments()?;
-            project = components.next()?;
-            name = components.next()?;
+        if project_path.is_empty() {
+            return None;
         }
 
+        let project_path = project_path.into_iter().map(String::from).collect();
+
         Some(RepoId {
-            project: String::from(project),
+            project_path,
             name: String::from(name.trim_end_matches(".git")),
         })
     }
@@ -69,17 +71,17 @@ impl RepoId {
             return None;
         }
 
-        let project;
-        let name;
+        let mut project_path = path.split("/").collect::<Vec<_>>();
+        let name = project_path.pop()?;
 
-        {
-            let mut path_segments = path.split("/");
-            project = path_segments.next()?;
-            name = path_segments.next()?;
+        if project_path.is_empty() {
+            return None;
         }
 
+        let project_path = project_path.into_iter().map(String::from).collect();
+
         Some(RepoId {
-            project: String::from(project),
+            project_path,
             name: String::from(name.trim_end_matches(".git")),
         })
     }
@@ -98,7 +100,7 @@ mod tests {
         assert_eq!(
             RepoId::from_url("ssh://git@gitlab.company.com/project/ios.git", &base_url()),
             Some(RepoId {
-                project: "project".to_string(),
+                project_path: vec!["project".to_string()],
                 name: "ios".to_string()
             })
         );
@@ -106,7 +108,37 @@ mod tests {
         assert_eq!(
             RepoId::from_url("https://gitlab.company.com/project/ios.git", &base_url()),
             Some(RepoId {
-                project: "project".to_string(),
+                project_path: vec!["project".to_string()],
+                name: "ios".to_string()
+            })
+        );
+
+        assert_eq!(
+            RepoId::from_url(
+                "ssh://git@gitlab.company.com/project/subgroup1/subgroup2/ios.git",
+                &base_url()
+            ),
+            Some(RepoId {
+                project_path: vec![
+                    "project".to_string(),
+                    "subgroup1".to_string(),
+                    "subgroup2".to_string(),
+                ],
+                name: "ios".to_string()
+            })
+        );
+
+        assert_eq!(
+            RepoId::from_url(
+                "https://gitlab.company.com/project/subgroup1/subgroup2/ios.git",
+                &base_url()
+            ),
+            Some(RepoId {
+                project_path: vec![
+                    "project".to_string(),
+                    "subgroup1".to_string(),
+                    "subgroup2".to_string(),
+                ],
                 name: "ios".to_string()
             })
         );
@@ -129,22 +161,77 @@ mod tests {
         assert_eq!(
             RepoId::from_scp("git@gitlab.company.com:project/ios.git", &base_url()),
             Some(RepoId {
-                project: "project".to_string(),
+                project_path: vec!["project".to_string()],
                 name: "ios".to_string()
             })
+        );
+
+        assert_eq!(
+            RepoId::from_scp(
+                "git@gitlab.company.com:project/subgroup1/subgroup2/ios.git",
+                &base_url()
+            ),
+            Some(RepoId {
+                project_path: vec![
+                    "project".to_string(),
+                    "subgroup1".to_string(),
+                    "subgroup2".to_string(),
+                ],
+                name: "ios".to_string()
+            })
+        );
+
+        assert_eq!(
+            RepoId::from_scp("git@gitlab.company.com:ios.git", &base_url()),
+            None
         );
     }
 
     #[test]
     fn url() {
         let repo_id = RepoId {
-            project: "project".to_string(),
+            project_path: vec!["project".to_string()],
             name: "ios".to_string(),
         };
 
         assert_eq!(
             repo_id.url(&base_url()).as_str(),
             "https://gitlab.company.com/project/ios"
-        )
+        );
+
+        let repo_id = RepoId {
+            project_path: vec![
+                "project".to_string(),
+                "subgroup1".to_string(),
+                "subgroup2".to_string(),
+            ],
+            name: "ios".to_string(),
+        };
+
+        assert_eq!(
+            repo_id.url(&base_url()).as_str(),
+            "https://gitlab.company.com/project/subgroup1/subgroup2/ios"
+        );
+    }
+
+    #[test]
+    fn id() {
+        let repo_id = RepoId {
+            project_path: vec!["project".to_string()],
+            name: "ios".to_string(),
+        };
+
+        assert_eq!(repo_id.id().as_str(), "project/ios");
+
+        let repo_id = RepoId {
+            project_path: vec![
+                "group".to_string(),
+                "subgroup1".to_string(),
+                "subgroup2".to_string(),
+            ],
+            name: "ios".to_string(),
+        };
+
+        assert_eq!(repo_id.id().as_str(), "group/subgroup1/subgroup2/ios");
     }
 }
