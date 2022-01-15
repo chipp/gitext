@@ -161,15 +161,16 @@ async fn handle_gitlab<Arg: AsRef<str>>(
 
 async fn handle_github<Arg: AsRef<str>>(
     command: &str,
-    _args: &[Arg],
-    _repo: &Repository,
+    args: &[Arg],
+    repo: &Repository,
     config: &Config,
-    _path: &Path,
+    path: &Path,
 ) -> Result<bool> {
-    use gighub::Auth;
+    use gighub::{Auth, Browse};
 
     match command {
         "auth" => Auth::handle(config).await?,
+        "browse" => Browse::handle(args, repo, config, &path)?,
         _ => return Ok(false),
     }
 
