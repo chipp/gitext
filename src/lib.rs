@@ -21,7 +21,7 @@ mod github;
 pub use error::Error;
 
 use common_git::{get_config, get_repo, Provider::*};
-use gighub::Auth as GigHubAuth;
+use gighub::{Auth as GigHubAuth, Browse as GigHubBrowse};
 use gitbucket::{
     Auth as GitBucketAuth, Browse as GitBucketBrowse, Pr as GitBucketPr, Prs as GitBucketPrs,
 };
@@ -50,6 +50,7 @@ pub async fn handle(args: Args) -> Result<(), Error> {
         (Some("pr"), GitLab) => GitLadPr::handle(args, repo, config).await,
         (Some("prs"), GitLab) => GitLadPrs::handle(args, repo, config).await,
 
+        (Some("browse"), GitHub) => GigHubBrowse::handle(args, repo, config, &path).await,
         (Some("auth"), GitHub) => GigHubAuth::handle(args, config).await,
 
         (Some("ticket"), _) => Ticket::handle(args, repo, config).await,
