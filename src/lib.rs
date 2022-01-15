@@ -18,6 +18,9 @@ mod gitbucket;
 mod gitlab;
 mod gitlad;
 
+mod gighub;
+mod github;
+
 use git2::{Config as GitConfig, Repository};
 
 use common_git::{get_aliases_from_config, get_config, get_repo, Config, Provider::*};
@@ -63,6 +66,7 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
     let is_handled = match config.provider {
         BitBucket => handle_bitbucket(&command, &args[1..], &repo, &config, &path).await?,
         GitLab => handle_gitlab(&command, &args[1..], &repo, &config, &path).await?,
+        GitHub => handle_github(&command, &args[1..], &repo, &config, &path).await?,
     };
 
     if !is_handled {
@@ -149,6 +153,23 @@ async fn handle_gitlab<Arg: AsRef<str>>(
         }
         "pr" => Pr::handle(args, repo, config).await?,
         "prs" => Prs::handle(args, repo, config).await?,
+        _ => return Ok(false),
+    }
+
+    Ok(true)
+}
+
+async fn handle_github<Arg: AsRef<str>>(
+    command: &str,
+    _args: &[Arg],
+    _repo: &Repository,
+    config: &Config,
+    _path: &Path,
+) -> Result<bool> {
+    use gighub::Auth;
+
+    match command {
+        "auth" => Auth::handle(config).await?,
         _ => return Ok(false),
     }
 
