@@ -15,9 +15,13 @@ mod gitbucket;
 mod gitlab;
 mod gitlad;
 
+mod gighub;
+mod github;
+
 pub use error::Error;
 
 use common_git::{get_config, get_repo, Provider::*};
+use gighub::Auth as GigHubAuth;
 use gitbucket::{
     Auth as GitBucketAuth, Browse as GitBucketBrowse, Pr as GitBucketPr, Prs as GitBucketPrs,
 };
@@ -45,6 +49,8 @@ pub async fn handle(args: Args) -> Result<(), Error> {
         (Some("auth"), GitLab) => GitLadAuth::handle(args, config).await,
         (Some("pr"), GitLab) => GitLadPr::handle(args, repo, config).await,
         (Some("prs"), GitLab) => GitLadPrs::handle(args, repo, config).await,
+
+        (Some("auth"), GitHub) => GigHubAuth::handle(args, config).await,
 
         (Some("ticket"), _) => Ticket::handle(args, repo, config).await,
         (Some(command), _) => Err(Error::UnknownCommand(command.to_string())),

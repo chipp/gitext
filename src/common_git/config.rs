@@ -58,6 +58,7 @@ impl JiraAuthDomainConfig for Config {
 pub enum Provider {
     BitBucket,
     GitLab,
+    GitHub,
 }
 
 impl Provider {
@@ -65,6 +66,7 @@ impl Provider {
         match raw.to_lowercase().as_str() {
             "bitbucket" => Some(Provider::BitBucket),
             "gitlab" => Some(Provider::GitLab),
+            "github" => Some(Provider::GitHub),
             _ => None,
         }
     }
@@ -121,9 +123,14 @@ pub fn get_config(repo: &Repository) -> Result<Config, GetConfigError> {
     let provider =
         Provider::parse_from_str(&provider).ok_or(GetConfigError::UnknownProvider(provider))?;
 
-    let base_url = config
-        .get_string("gitext.baseurl")
-        .map_err(|_| GetConfigError::BaseUrlNotSpecified)?;
+    let base_url = config.get_string("gitext.baseurl").or_else(|_| {
+        if let Provider::GitHub = provider {
+            Ok("https://github.com".to_string())
+        } else {
+            Err(GetConfigError::BaseUrlNotSpecified)
+        }
+    })?;
+
     let base_url = Url::parse(&base_url).map_err(|_| GetConfigError::InvalidBaseUrl(base_url))?;
 
     if base_url.host().is_none() {
