@@ -1,5 +1,5 @@
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
-use crate::github::{get_current_repo_id, Client, Conclusion, PullRequest, RepoId, Status};
+use crate::github::{get_current_repo_id, Client, Conclusion, PullRequest, RepoId, State, Status};
 
 use crate::Error;
 
@@ -24,25 +24,37 @@ impl Prs {
             return Ok(());
         }
 
-        Self::print_table_for_prs(&prs, &repo_id, config).await;
+        Self::print_table_for_prs(&prs, false, &repo_id, config).await;
 
         Ok(())
     }
 
-    pub async fn print_table_for_prs<Conf>(prs: &[PullRequest], repo_id: &RepoId, config: &Conf)
-    where
+    pub async fn print_table_for_prs<Conf>(
+        prs: &[PullRequest],
+        show_status: bool,
+        repo_id: &RepoId,
+        config: &Conf,
+    ) where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
     {
         let mut table = Table::new();
-        table.set_titles(row![
-            "ID",
-            "Author",
-            "Title",
-            "CI",
-            "Target",
-            "Last updated"
-        ]);
+
+        {
+            let mut row = row![];
+            row.add_cell(cell!("ID"));
+            row.add_cell(cell!("Author"));
+            row.add_cell(cell!("Title"));
+            row.add_cell(cell!("CI"));
+            row.add_cell(cell!("Target"));
+            row.add_cell(cell!("Last updated"));
+
+            if show_status {
+                row.add_cell(cell!("Status"));
+            }
+
+            table.set_titles(row);
+        }
 
         let client = Client::new(config);
 
@@ -55,7 +67,7 @@ impl Prs {
         .await;
 
         for (pr, status) in prs.into_iter().zip(statuses.into_iter()) {
-            let mut row = row![pr.number, pr.user.login, Self::title_for_pr(&pr, 35)];
+            let mut row = row![pr.number, pr.user.login, title_for_pr(&pr, 35)];
 
             let updated = pr.updated_at - chrono::Utc::now();
             let updated = chrono_humanize::HumanTime::from(updated);
@@ -69,6 +81,14 @@ impl Prs {
 
             row.add_cell(cell!(pr.base.label));
             row.add_cell(cell!(updated));
+
+            if show_status {
+                match status_for_pr(&pr) {
+                    PullRequestStatus::Open => row.add_cell(cell!(Fy->"Open")),
+                    PullRequestStatus::Merged => row.add_cell(cell!(Fg->"Merged")),
+                    PullRequestStatus::Closed => row.add_cell(cell!(Fr->"Closed")),
+                }
+            }
 
             table.add_row(row);
         }
@@ -97,20 +117,34 @@ impl Prs {
             (Status::Completed, _) => Some(ChecksStatus::Failed),
         }
     }
-
-    fn title_for_pr(pr: &PullRequest, max_width: usize) -> String {
-        use hyphenation::{Language, Load, Standard};
-        use textwrap::{fill, Options, WordSplitter::Hyphenation};
-
-        let hyphenator = Standard::from_embedded(Language::EnglishUS).unwrap();
-        let options = Options::new(max_width).word_splitter(Hyphenation(hyphenator));
-
-        fill(&pr.title, options)
-    }
 }
 
 enum ChecksStatus {
     Passed,
     Failed,
     InProgress,
+}
+
+enum PullRequestStatus {
+    Open,
+    Merged,
+    Closed,
+}
+
+fn title_for_pr(pr: &PullRequest, max_width: usize) -> String {
+    use hyphenation::{Language, Load, Standard};
+    use textwrap::{fill, Options, WordSplitter::Hyphenation};
+
+    let hyphenator = Standard::from_embedded(Language::EnglishUS).unwrap();
+    let options = Options::new(max_width).word_splitter(Hyphenation(hyphenator));
+
+    fill(&pr.title, options)
+}
+
+fn status_for_pr(pr: &PullRequest) -> PullRequestStatus {
+    match pr.state {
+        State::Open => PullRequestStatus::Open,
+        State::Closed if pr.merged_at.is_some() => PullRequestStatus::Merged,
+        State::Closed => PullRequestStatus::Closed,
+    }
 }

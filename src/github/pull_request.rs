@@ -16,7 +16,7 @@ pub struct PullRequest {
     pub merged_at: Option<DateTime<Utc>>,
 
     pub user: User,
-    pub state: PullRequestState,
+    pub state: State,
 
     pub head: Ref,
     pub base: Ref,
@@ -33,7 +33,7 @@ pub struct Ref {
 
 #[derive(Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord)]
 #[serde(rename_all = "lowercase")]
-pub enum PullRequestState {
+pub enum State {
     Open,
     Closed,
 }
@@ -107,7 +107,7 @@ mod tests {
         assert_eq!(pr.user.login, "chipp");
         assert_eq!(pr.user.name, None);
 
-        assert_eq!(pr.state, PullRequestState::Closed);
+        assert_eq!(pr.state, State::Closed);
 
         assert_eq!(pr.head.label, "chipp:add-staging");
         assert_eq!(pr.head.sha, "5b69861aec37ceb223a563ea85533a988f13fec6");

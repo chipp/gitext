@@ -166,11 +166,12 @@ async fn handle_github<Arg: AsRef<str>>(
     config: &Config,
     path: &Path,
 ) -> Result<bool> {
-    use gighub::{Auth, Browse, Prs};
+    use gighub::{Auth, Browse, Pr, Prs};
 
     match command {
         "auth" => Auth::handle(config).await?,
         "browse" => Browse::handle(args, repo, config, &path)?,
+        "pr" => Pr::handle(args, repo, config).await?,
         "prs" => Prs::handle(repo, config).await?,
         _ => return Ok(false),
     }
