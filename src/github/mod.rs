@@ -1,8 +1,12 @@
+mod check_suite;
 mod client;
+mod pull_request;
 mod repo_id;
 mod user;
 
+pub use check_suite::{CheckSuites, Conclusion, Status};
 pub use client::Client;
+pub use pull_request::PullRequest;
 pub use repo_id::RepoId;
 
 use crate::common_git::BaseUrlConfig;

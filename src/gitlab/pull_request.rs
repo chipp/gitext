@@ -12,9 +12,9 @@ pub struct PullRequest {
     #[serde(rename = "web_url")]
     pub url: Url,
 
-    #[serde(rename = "created_at"/*, with = "ts_milliseconds"*/)]
+    #[serde(rename = "created_at")]
     pub created: DateTime<Utc>,
-    #[serde(rename = "updated_at"/*, with = "ts_milliseconds"*/)]
+    #[serde(rename = "updated_at")]
     pub updated: DateTime<Utc>,
 
     pub author: User,

@@ -21,11 +21,6 @@ mod github;
 pub use error::Error;
 
 use common_git::{get_config, get_repo, Provider::*};
-use gighub::{Auth as GigHubAuth, Browse as GigHubBrowse};
-use gitbucket::{
-    Auth as GitBucketAuth, Browse as GitBucketBrowse, Pr as GitBucketPr, Prs as GitBucketPrs,
-};
-use gitlad::{Auth as GitLadAuth, Browse as GitLadBrowse, Pr as GitLadPr, Prs as GitLadPrs};
 use std::env::Args;
 
 pub async fn handle(args: Args) -> Result<(), Error> {
@@ -40,18 +35,19 @@ pub async fn handle(args: Args) -> Result<(), Error> {
     let config = get_config(&repo)?;
 
     match (args.next().as_ref().map(String::as_str), &config.provider) {
-        (Some("browse"), BitBucket) => GitBucketBrowse::handle(args, repo, config, &path).await,
-        (Some("auth"), BitBucket) => GitBucketAuth::handle(args, config).await,
-        (Some("pr"), BitBucket) => GitBucketPr::handle(args, repo, config).await,
-        (Some("prs"), BitBucket) => GitBucketPrs::handle(args, repo, config).await,
+        (Some("browse"), BitBucket) => gitbucket::Browse::handle(args, repo, config, &path).await,
+        (Some("auth"), BitBucket) => gitbucket::Auth::handle(args, config).await,
+        (Some("pr"), BitBucket) => gitbucket::Pr::handle(args, repo, config).await,
+        (Some("prs"), BitBucket) => gitbucket::Prs::handle(args, repo, config).await,
 
-        (Some("browse"), GitLab) => GitLadBrowse::handle(args, repo, config, &path).await,
-        (Some("auth"), GitLab) => GitLadAuth::handle(args, config).await,
-        (Some("pr"), GitLab) => GitLadPr::handle(args, repo, config).await,
-        (Some("prs"), GitLab) => GitLadPrs::handle(args, repo, config).await,
+        (Some("browse"), GitLab) => gitlad::Browse::handle(args, repo, config, &path).await,
+        (Some("auth"), GitLab) => gitlad::Auth::handle(args, config).await,
+        (Some("pr"), GitLab) => gitlad::Pr::handle(args, repo, config).await,
+        (Some("prs"), GitLab) => gitlad::Prs::handle(args, repo, config).await,
 
-        (Some("browse"), GitHub) => GigHubBrowse::handle(args, repo, config, &path).await,
-        (Some("auth"), GitHub) => GigHubAuth::handle(args, config).await,
+        (Some("browse"), GitHub) => gighub::Browse::handle(args, repo, config, &path).await,
+        (Some("auth"), GitHub) => gighub::Auth::handle(args, config).await,
+        (Some("prs"), GitHub) => gighub::Prs::handle(args, repo, config).await,
 
         (Some("ticket"), _) => Ticket::handle(args, repo, config).await,
         (Some(command), _) => Err(Error::UnknownCommand(command.to_string())),

@@ -3,6 +3,8 @@ use http_client::{Error, HttpClient};
 
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
+use super::{CheckSuites, PullRequest, RepoId};
+
 pub struct Client<'a> {
     inner: HttpClient<'a>,
 }
@@ -39,5 +41,39 @@ impl Client<'_> {
 impl Client<'_> {
     pub async fn whoami(&self) -> Result<super::user::User, Error> {
         self.inner.get(vec!["user"]).await
+    }
+
+    pub async fn find_open_prs(&self, repo_id: &RepoId) -> Result<Vec<PullRequest>, Error> {
+        self.inner
+            .get_with_params(
+                &["repos", &repo_id.user, &repo_id.repo, "pulls"],
+                &[
+                    ("state", "open"),
+                    ("per_page", "100"),
+                    ("sort", "updated"),
+                    ("direction", "desc"),
+                ],
+            )
+            .await
+    }
+
+    pub async fn get_commit_check_suites(
+        &self,
+        repo_id: &RepoId,
+        commit: &str,
+    ) -> Result<CheckSuites, Error> {
+        self.inner
+            .get_with_params(
+                &[
+                    "repos",
+                    &repo_id.user,
+                    &repo_id.repo,
+                    "commits",
+                    commit,
+                    "check-suites",
+                ],
+                &[("per_page", "100")],
+            )
+            .await
     }
 }
