@@ -21,6 +21,7 @@ impl Browse {
         let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
 
         let mut url = repo_id.url(&config.base_url());
+        let mut open_pr = false;
 
         {
             let mut segments = url.path_segments_mut().unwrap();
@@ -35,6 +36,7 @@ impl Browse {
                         u16::from_str(&id).map_err(|_| Error::InvalidPrId(id.to_string()))?;
                     segments.push("pull-requests");
                     segments.push(&format!("{}", parsed_id));
+                    open_pr = true;
                 }
                 _ => {
                     segments.push("browse");
@@ -56,7 +58,9 @@ impl Browse {
             }
         }
 
-        url.query_pairs_mut().append_pair("at", &branch);
+        if !open_pr {
+            url.query_pairs_mut().append_pair("at", &branch);
+        }
 
         Command::new("open")
             .arg(url.as_str())
