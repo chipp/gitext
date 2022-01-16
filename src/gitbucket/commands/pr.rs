@@ -118,7 +118,7 @@ impl Pr {
     }
 }
 
-const SUPPORTED_COMMANDS: [&str; 3] = ["new", "info", "checkout"];
+const SUPPORTED_COMMANDS: [&str; 4] = ["new", "browse", "info", "checkout"];
 
 impl Pr {
     async fn find_existing_pr<Conf>(

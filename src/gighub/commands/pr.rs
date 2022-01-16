@@ -2,7 +2,7 @@ use crate::common_git::{
     fetch_remote, find_remote_branch, get_current_branch, switch_to_existing_branch,
     switch_to_local_branch, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
-use crate::gitlab::{get_current_repo_id, get_gitlab_remote, Client, PullRequest, RepoId};
+use crate::github::{get_current_repo_id, get_github_remote, Client, PullRequest, RepoId};
 use crate::Error;
 use git2::{Error as GitError, ErrorClass, ErrorCode, Oid, Repository};
 use std::process::{Command, Stdio};
@@ -66,8 +66,7 @@ impl Pr {
 
                         let _ = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id.clone()))?;
 
-                        segments.push("-");
-                        segments.push("merge_requests");
+                        segments.push("pull");
                         segments.push(&id);
                     }
 
@@ -83,7 +82,7 @@ impl Pr {
                     let client = Client::new(config);
                     let pr = client.get_pr_by_id(id, &repo_id).await?;
 
-                    super::prs::Prs::print_table_for_prs(&[pr], config).await;
+                    super::prs::Prs::print_table_for_prs(&[pr], true, &repo_id, config).await;
 
                     Ok(())
                 } else {
@@ -91,14 +90,14 @@ impl Pr {
                     let mut prs = client
                         .find_prs_for_branch(&branch, &repo_id, "open")
                         .await?;
-                    prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
+                    prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.number));
 
                     if prs.is_empty() {
                         println!("No PRs for that branch");
                         return Ok(());
                     }
 
-                    super::prs::Prs::print_table_for_prs(&prs, config).await;
+                    super::prs::Prs::print_table_for_prs(&prs, true, &repo_id, config).await;
 
                     Ok(())
                 }
@@ -144,7 +143,7 @@ impl Pr {
     }
 
     fn url_for_create<Conf>(
-        branch: &str,
+        source: &str,
         repo_id: &RepoId,
         target: Option<String>,
         config: &Conf,
@@ -156,18 +155,18 @@ impl Pr {
 
         {
             let mut segments = url.path_segments_mut().unwrap();
-            segments.push("-");
-            segments.push("merge_requests");
-            segments.push("new");
+            segments.push("compare");
+
+            if let Some(target) = target {
+                segments.push(&format!("{target}...{source}"));
+            } else {
+                segments.push(source);
+            }
         }
 
         {
             let mut query_pairs = url.query_pairs_mut();
-            query_pairs.append_pair("merge_request[source_branch]", &branch);
-
-            if let Some(target) = target {
-                query_pairs.append_pair("merge_request[target_branch]", &target);
-            }
+            query_pairs.append_pair("expand", "1");
         }
 
         url
@@ -193,8 +192,8 @@ impl Pr {
         Conf: BaseUrlConfig,
         Conf: AuthDomainConfig,
     {
-        let branch_name: &str = &pr.source_branch;
-        let mut remote = get_gitlab_remote(&repo, config).unwrap();
+        let branch_name: &str = &pr.head.reference;
+        let mut remote = get_github_remote(&repo, config).unwrap();
         fetch_remote(&mut remote, config)?;
 
         match find_remote_branch(branch_name, &remote, &repo) {
@@ -203,10 +202,10 @@ impl Pr {
                 if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
             {
                 // TODO: handle existing local branch
-                let id = Oid::from_str(&pr.sha)?;
+                let id = Oid::from_str(&pr.head.sha)?;
                 let commit = repo.find_commit(id)?;
 
-                let local_branch = repo.branch(&pr.source_branch, &commit, false)?;
+                let local_branch = repo.branch(&pr.head.reference, &commit, false)?;
                 switch_to_local_branch(local_branch, &repo)
             }
             Err(err) => Err(err),

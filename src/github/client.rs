@@ -76,4 +76,44 @@ impl Client<'_> {
             )
             .await
     }
+
+    pub async fn find_prs_for_branch(
+        &self,
+        branch: &str,
+        repo_id: &RepoId,
+        state: &str,
+    ) -> Result<Vec<PullRequest>, Error> {
+        self.inner
+            .get_with_params(
+                &["repos", &repo_id.user, &repo_id.repo, "pulls"],
+                &[
+                    ("state", state),
+                    ("base", branch),
+                    ("per_page", "100"),
+                    ("sort", "updated"),
+                    ("direction", "desc"),
+                ],
+            )
+            .await
+    }
+
+    pub async fn get_pr_by_id(&self, pr_id: u16, repo_id: &RepoId) -> Result<PullRequest, Error> {
+        self.inner
+            .get_with_params(
+                &[
+                    "repos",
+                    &repo_id.user,
+                    &repo_id.repo,
+                    "pulls",
+                    &format!("{pr_id}"),
+                ],
+                &[
+                    ("state", "open"),
+                    ("per_page", "100"),
+                    ("sort", "updated"),
+                    ("direction", "desc"),
+                ],
+            )
+            .await
+    }
 }

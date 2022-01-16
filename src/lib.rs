@@ -47,6 +47,7 @@ pub async fn handle(args: Args) -> Result<(), Error> {
 
         (Some("browse"), GitHub) => gighub::Browse::handle(args, repo, config, &path).await,
         (Some("auth"), GitHub) => gighub::Auth::handle(args, config).await,
+        (Some("pr"), GitHub) => gighub::Pr::handle(args, repo, config).await,
         (Some("prs"), GitHub) => gighub::Prs::handle(args, repo, config).await,
 
         (Some("ticket"), _) => Ticket::handle(args, repo, config).await,
