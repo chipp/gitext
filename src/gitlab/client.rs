@@ -40,8 +40,11 @@ impl Client<'_> {
         &self,
         repo_id: &RepoId,
         author: Option<String>,
+        page: u8,
     ) -> Result<Vec<PullRequest>, Error> {
-        let mut params = vec![("state", "opened")];
+        let page = format!("{}", page);
+        let mut params = vec![("state", "opened"), ("page", &page)];
+
         if let Some(author) = author.as_ref() {
             params.push(("author_username", author));
         }

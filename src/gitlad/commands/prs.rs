@@ -147,4 +147,8 @@ impl Prs {
                 .collect::<HashMap<_, _>>(),
         )
     }
+
+    async fn find_all_open_prs() -> Result<Vec<PullRequest>, Error> {
+        
+    }
 }
