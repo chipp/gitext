@@ -83,7 +83,7 @@ impl Pr {
                     let client = Client::new(config);
                     let pr = client.get_pr_by_id(id, &repo_id).await?;
 
-                    super::prs::Prs::print_table_for_prs(&[pr], config).await;
+                    super::prs::Prs::print_table_for_prs(&[pr], &repo_id, config).await;
 
                     Ok(())
                 } else {
@@ -93,7 +93,7 @@ impl Pr {
                         .await?;
                     prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
 
-                    super::prs::Prs::print_table_for_prs(&prs, config).await;
+                    super::prs::Prs::print_table_for_prs(&prs, &repo_id, config).await;
 
                     Ok(())
                 }

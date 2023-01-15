@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use crate::common_git::{
     extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
-use crate::gitlab::{get_current_repo_id, Client, PullRequest, RepoId};
+use crate::gitlab::{get_current_repo_id, Client, Pipeline, PipelineStatus, PullRequest, RepoId};
 use crate::jira::JiraClient;
 use crate::Error;
 
+use futures_util::{stream, StreamExt};
 use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
 
@@ -36,13 +37,15 @@ impl Prs {
         };
 
         let prs = Self::find_all_open_prs(&client, &repo_id, author).await?;
-        Self::print_table_for_prs(&prs, &config).await;
+        Self::print_table_for_prs(&prs, &repo_id, &config).await;
 
         Ok(())
     }
 
-    pub async fn print_table_for_prs<Conf>(prs: &[PullRequest], config: &Conf)
+    pub async fn print_table_for_prs<Conf>(prs: &[PullRequest], repo_id: &RepoId, config: &Conf)
     where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: BaseUrlConfig,
         Conf: JiraUrlConfig,
         Conf: JiraAuthDomainConfig + Send + Sync,
     {
@@ -66,6 +69,8 @@ impl Prs {
         let tickets = Self::get_tickets_statuses_for_prs(&prs, config)
             .await
             .unwrap_or_default();
+        let pipelines = Self::get_last_pipelines_for_prs(&prs, &repo_id, config).await;
+
         let na = String::from("N/A");
 
         for pr in prs {
@@ -74,13 +79,15 @@ impl Prs {
             let updated = pr.updated - chrono::Utc::now();
             let updated = chrono_humanize::HumanTime::from(updated);
 
-            if pr.labels.iter().any(|label| label == "CI OK") {
-                row.add_cell(cell!(Fg->"A"));
-            } else if pr.labels.iter().any(|label| label == "CI FAILED") {
-                row.add_cell(cell!(Fr->"X"));
-            } else {
-                row.add_cell(cell!(Fy->"I"));
-            }
+            match pipelines.get(&pr.id) {
+                Some(pipeline) => match pipeline.status {
+                    PipelineStatus::Pending => row.add_cell(cell!(Fy->"P")),
+                    PipelineStatus::Running => row.add_cell(cell!(Fy->"R")),
+                    PipelineStatus::Success => row.add_cell(cell!(Fg->"S")),
+                    PipelineStatus::Failed => row.add_cell(cell!(Fr->"F")),
+                },
+                None => row.add_cell(cell!("")),
+            };
 
             let upvotes = pr.upvotes;
             let upvotes_cell = Cell::new(&format!("{}", upvotes));
@@ -111,6 +118,36 @@ impl Prs {
 
         let wrapper = Wrapper::with_splitter(max_width, NoHyphenation);
         wrapper.fill(&pr.title)
+    }
+
+    async fn get_last_pipelines_for_prs<Conf>(
+        prs: &[PullRequest],
+        repo_id: &RepoId,
+        config: &Conf,
+    ) -> HashMap<u16, Pipeline>
+    where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: BaseUrlConfig,
+    {
+        let client = Client::new(config);
+
+        let pipelines = stream::iter(
+            prs.iter()
+                .map(|pr| client.get_last_pipeline_for_branch(&pr.source_branch, &repo_id)),
+        )
+        .buffered(10)
+        .collect::<Vec<_>>()
+        .await;
+
+        let mut result = HashMap::new();
+
+        for (pr, pipeline) in prs.iter().zip(pipelines.into_iter()) {
+            if let Ok(pipeline) = pipeline {
+                result.insert(pr.id, pipeline);
+            }
+        }
+
+        result
     }
 
     async fn get_tickets_statuses_for_prs<Conf>(

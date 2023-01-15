@@ -6,7 +6,10 @@ mod client;
 pub use client::Client;
 
 mod pull_request;
-pub use pull_request::PullRequest;
+pub use pull_request::{PullRequest, PullRequestState};
+
+mod pipeline;
+pub use pipeline::{Pipeline, PipelineStatus};
 
 mod user;
 

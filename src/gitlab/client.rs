@@ -1,6 +1,6 @@
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
-use super::{PullRequest, RepoId};
+use super::{Pipeline, PullRequest, RepoId};
 
 use http_client::{Error, HttpClient};
 
@@ -64,6 +64,19 @@ impl Client<'_> {
             .get_with_params(
                 vec!["projects", &repo_id.id(), "merge_requests"],
                 &[("source_branch", branch), ("state", state)],
+            )
+            .await
+    }
+
+    pub async fn get_last_pipeline_for_branch(
+        &self,
+        branch: &str,
+        repo_id: &RepoId,
+    ) -> Result<Pipeline, Error> {
+        self.inner
+            .get_with_params(
+                vec!["projects", &repo_id.id(), "pipelines", "latest"],
+                &[("ref", branch)],
             )
             .await
     }
