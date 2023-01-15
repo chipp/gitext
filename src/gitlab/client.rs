@@ -36,14 +36,17 @@ impl Client<'_> {
         self.inner.get(vec!["user"]).await
     }
 
-    pub async fn find_open_prs(
+    pub async fn find_open_prs<A: AsRef<str>>(
         &self,
         repo_id: &RepoId,
-        author: Option<String>,
+        author: Option<A>,
+        page: u8,
     ) -> Result<Vec<PullRequest>, Error> {
-        let mut params = vec![("state", "opened")];
+        let page = format!("{}", page);
+        let mut params = vec![("state", "opened"), ("page", &page)];
+
         if let Some(author) = author.as_ref() {
-            params.push(("author_username", author));
+            params.push(("author_username", author.as_ref()));
         }
 
         self.inner

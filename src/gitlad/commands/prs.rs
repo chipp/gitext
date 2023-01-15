@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::common_git::{
     extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
-use crate::gitlab::{get_current_repo_id, Client, PullRequest};
+use crate::gitlab::{get_current_repo_id, Client, PullRequest, RepoId};
 use crate::jira::JiraClient;
 use crate::Error;
 
@@ -35,7 +35,7 @@ impl Prs {
             None
         };
 
-        let prs = client.find_open_prs(&repo_id, author).await?;
+        let prs = Self::find_all_open_prs(&client, &repo_id, author).await?;
         Self::print_table_for_prs(&prs, &config).await;
 
         Ok(())
@@ -146,5 +146,25 @@ impl Prs {
                 .map(|issue| (issue.key, issue.fields.status.name))
                 .collect::<HashMap<_, _>>(),
         )
+    }
+
+    async fn find_all_open_prs(
+        client: &Client<'_>,
+        repo_id: &RepoId,
+        author: Option<String>,
+    ) -> Result<Vec<PullRequest>, Error> {
+        let mut result = vec![];
+        let mut page = 1;
+        let author = author.as_ref();
+
+        loop {
+            let prs = client.find_open_prs(&repo_id, author, page).await?;
+            if prs.is_empty() {
+                return Ok(result);
+            } else {
+                result.extend(prs);
+                page += 1;
+            }
+        }
     }
 }
