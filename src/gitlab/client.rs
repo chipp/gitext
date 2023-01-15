@@ -1,6 +1,6 @@
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
-use super::{Pipeline, PullRequest, RepoId};
+use super::{user::User, Pipeline, PullRequest, RepoId};
 
 use http_client::{Error, HttpClient};
 
@@ -32,21 +32,35 @@ impl Client<'_> {
 }
 
 impl Client<'_> {
-    pub async fn whoami(&self) -> Result<super::user::User, Error> {
+    pub async fn whoami(&self) -> Result<User, Error> {
         self.inner.get(vec!["user"]).await
     }
 
-    pub async fn find_open_prs<A: AsRef<str>>(
+    pub async fn get_user_by_name<N: AsRef<str>>(&self, name: N) -> Result<Vec<User>, Error> {
+        self.inner
+            .get_with_params(vec!["users"], [("username", name)])
+            .await
+    }
+
+    pub async fn find_open_prs(
         &self,
         repo_id: &RepoId,
-        author: Option<A>,
+        author: Option<u16>,
+        assignee: Option<u16>,
         page: u8,
     ) -> Result<Vec<PullRequest>, Error> {
         let page = format!("{}", page);
         let mut params = vec![("state", "opened"), ("page", &page)];
 
+        let author = author.map(|a| format!("{}", a));
+        let assignee = assignee.map(|a| format!("{}", a));
+
         if let Some(author) = author.as_ref() {
-            params.push(("author_username", author.as_ref()));
+            params.push(("author_id", author));
+        }
+
+        if let Some(assignee) = assignee.as_ref() {
+            params.push(("assignee_id", assignee));
         }
 
         self.inner

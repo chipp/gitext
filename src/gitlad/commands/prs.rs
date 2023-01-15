@@ -11,6 +11,11 @@ use futures_util::{stream, StreamExt};
 use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
 
+enum FilterMode {
+    ByAuthor(u16),
+    ByAssignee(u16),
+}
+
 pub struct Prs;
 
 impl Prs {
@@ -28,15 +33,9 @@ impl Prs {
         let repo_id = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
         let client = Client::new(&config);
 
-        let mut args = args;
-        let author = if let Some("my") = args.next().as_ref().map(AsRef::<str>::as_ref) {
-            let user = client.whoami().await?;
-            Some(user.name)
-        } else {
-            None
-        };
+        let filter_mode = Self::filter_mode(args, &client).await;
 
-        let prs = Self::find_all_open_prs(&client, &repo_id, author).await?;
+        let prs = Self::find_all_open_prs(&client, &repo_id, filter_mode).await?;
         Self::print_table_for_prs(&prs, &repo_id, &config).await;
 
         Ok(())
@@ -111,6 +110,25 @@ impl Prs {
         }
 
         table.printstd();
+    }
+
+    async fn filter_mode(mut args: std::env::Args, client: &Client<'_>) -> Option<FilterMode> {
+        match args.next().as_ref().map(AsRef::<str>::as_ref) {
+            Some("my") => {
+                let user = client.whoami().await.ok()?;
+                Some(FilterMode::ByAuthor(user.id))
+            }
+            Some("assigned") => {
+                let user = client.whoami().await.ok()?;
+                Some(FilterMode::ByAssignee(user.id))
+            }
+            Some(username) => {
+                let users = client.get_user_by_name(username).await.ok()?;
+                let user = users.first()?;
+                Some(FilterMode::ByAuthor(user.id))
+            }
+            None => None,
+        }
     }
 
     fn title_for_pr(pr: &PullRequest, max_width: usize) -> String {
@@ -188,14 +206,21 @@ impl Prs {
     async fn find_all_open_prs(
         client: &Client<'_>,
         repo_id: &RepoId,
-        author: Option<String>,
+        filter_mode: Option<FilterMode>,
     ) -> Result<Vec<PullRequest>, Error> {
         let mut result = vec![];
         let mut page = 1;
-        let author = author.as_ref();
+
+        let (author, assignee) = match filter_mode {
+            Some(FilterMode::ByAuthor(id)) => (Some(id), None),
+            Some(FilterMode::ByAssignee(id)) => (None, Some(id)),
+            None => (None, None),
+        };
 
         loop {
-            let prs = client.find_open_prs(&repo_id, author, page).await?;
+            let prs = client
+                .find_open_prs(&repo_id, author, assignee, page)
+                .await?;
             if prs.is_empty() {
                 return Ok(result);
             } else {
