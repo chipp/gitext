@@ -31,7 +31,7 @@ impl Pr {
         if let Some(arg) = args.next() {
             Self::handle_argument(arg, args.next(), repo_id, &branch, repo, &config).await
         } else {
-            let existing_pr = Self::find_existing_pr(&branch, &repo_id, &config).await?;
+            let existing_pr = Self::find_existing_open_pr(&branch, &repo_id, &config).await?;
 
             let url = existing_pr
                 .map(|pr| pr.url)
@@ -117,10 +117,10 @@ impl Pr {
     }
 }
 
-const SUPPORTED_COMMANDS: [&str; 3] = ["new", "info", "checkout"];
+const SUPPORTED_COMMANDS: [&str; 4] = ["new", "browse", "info", "checkout"];
 
 impl Pr {
-    async fn find_existing_pr<Conf>(
+    async fn find_existing_open_pr<Conf>(
         branch: &str,
         repo_id: &RepoId,
         config: &Conf,
@@ -130,11 +130,11 @@ impl Pr {
         Conf: AuthDomainConfig + Send + Sync,
     {
         let client = Client::new(config);
-        let prs = client.find_prs_for_branch(&branch, &repo_id, "all").await;
+        let prs = client
+            .find_prs_for_branch(&branch, &repo_id, "opened")
+            .await;
 
-        let mut prs = prs.map_err(|err| Error::NoPrsForBranch(branch.to_string(), err))?;
-        prs.sort_unstable_by(|lhs, rhs| lhs.state.cmp(&rhs.state));
-
+        let prs = prs.map_err(|err| Error::NoPrsForBranch(branch.to_string(), err))?;
         Ok(prs.into_iter().next())
     }
 
