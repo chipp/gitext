@@ -5,16 +5,16 @@ use crate::error::Error;
 pub struct Auth;
 
 impl Auth {
-    pub async fn handle<Conf>(_args: std::env::Args, config: Conf) -> Result<(), Error>
+    pub async fn handle<Conf>(config: &Conf) -> Result<(), Error>
     where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
     {
-        match Self::print_whoami(&config).await {
+        match Self::print_whoami(config).await {
             Ok(_) => Ok(()),
             Err(_) => {
                 auth::reset_user_and_pass(config.auth_domain());
-                Self::print_whoami(&config)
+                Self::print_whoami(config)
                     .await
                     .map_err(|_| Error::AuthorizationError)
             }

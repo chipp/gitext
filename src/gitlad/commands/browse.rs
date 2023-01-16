@@ -2,22 +2,23 @@ use crate::common_git::{get_current_branch, BaseUrlConfig};
 use crate::gitlab::get_current_repo_id;
 use crate::Error;
 use git2::Repository;
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
 pub struct Browse;
 
 impl Browse {
-    pub async fn handle<Conf>(
-        args: std::env::Args,
-        repo: Repository,
-        config: Conf,
-        path: &str,
+    pub fn handle<Arg: AsRef<str>, Conf>(
+        args: &[Arg],
+        repo: &Repository,
+        config: &Conf,
+        path: &Path,
     ) -> Result<(), Error>
     where
         Conf: BaseUrlConfig,
     {
-        let repo_id = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
+        let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
         let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
 
         let mut url = repo_id.url(&config.base_url());
@@ -25,10 +26,9 @@ impl Browse {
         {
             let mut segments = url.path_segments_mut().unwrap();
 
-            let mut args = args;
             match (
-                args.next().as_ref().map(AsRef::<str>::as_ref),
-                args.next().as_ref().map(AsRef::<str>::as_ref),
+                args.get(0).map(AsRef::<_>::as_ref),
+                args.get(1).map(AsRef::<_>::as_ref),
             ) {
                 (Some("pr"), Some(id)) => {
                     let parsed_id =
@@ -45,11 +45,8 @@ impl Browse {
                         segments.push(&component);
                     }
 
-                    let current_path = std::path::Path::new(path);
-                    let relative_path = repo
-                        .workdir()
-                        .map(|p| current_path.strip_prefix(&p).ok())
-                        .flatten();
+                    let relative_path =
+                        repo.workdir().map(|p| path.strip_prefix(&p).ok()).flatten();
 
                     if let Some(relative_path) = relative_path {
                         for comp in relative_path.components().map(|comp| comp.as_os_str()) {

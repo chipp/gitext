@@ -19,10 +19,10 @@ enum FilterMode {
 pub struct Prs;
 
 impl Prs {
-    pub async fn handle<Conf>(
-        args: std::env::Args,
-        repo: Repository,
-        config: Conf,
+    pub async fn handle<Arg: AsRef<str>, Conf>(
+        args: &[Arg],
+        repo: &Repository,
+        config: &Conf,
     ) -> Result<(), Error>
     where
         Conf: AuthDomainConfig + Send + Sync,
@@ -30,13 +30,13 @@ impl Prs {
         Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
-        let repo_id = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
-        let client = Client::new(&config);
+        let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
+        let client = Client::new(config);
 
         let filter_mode = Self::filter_mode(args, &client).await;
 
         let prs = Self::find_all_open_prs(&client, &repo_id, filter_mode).await?;
-        Self::print_table_for_prs(&prs, &repo_id, &config).await;
+        Self::print_table_for_prs(&prs, &repo_id, config).await;
 
         Ok(())
     }
@@ -112,8 +112,8 @@ impl Prs {
         table.printstd();
     }
 
-    async fn filter_mode(mut args: std::env::Args, client: &Client<'_>) -> Option<FilterMode> {
-        match args.next().as_ref().map(AsRef::<str>::as_ref) {
+    async fn filter_mode<Arg: AsRef<str>>(args: &[Arg], client: &Client<'_>) -> Option<FilterMode> {
+        match args.first().map(AsRef::<_>::as_ref) {
             Some("my") => {
                 let user = client.whoami().await.ok()?;
                 Some(FilterMode::ByAuthor(user.id))

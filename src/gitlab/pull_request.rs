@@ -42,7 +42,7 @@ pub enum PullRequestState {
 mod tests {
     use super::*;
     // use crate::user::User;
-    use chrono::TimeZone;
+    use chrono::{Duration, TimeZone};
 
     #[test]
     fn parse() {
@@ -82,11 +82,11 @@ mod tests {
         assert_eq!(pr.title, "IOS-1212: Test title");
         assert_eq!(
             pr.created,
-            Utc.ymd(2021, 4, 27).and_hms_milli(16, 16, 38, 490)
+            Utc.with_ymd_and_hms(2021, 4, 27, 16, 16, 38).unwrap() + Duration::milliseconds(490)
         );
         assert_eq!(
             pr.updated,
-            Utc.ymd(2021, 4, 27).and_hms_milli(16, 41, 32, 410)
+            Utc.with_ymd_and_hms(2021, 4, 27, 16, 41, 32).unwrap() + Duration::milliseconds(410)
         );
 
         assert_eq!(pr.author.id, 10);

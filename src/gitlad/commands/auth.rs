@@ -7,12 +7,12 @@ use http_client::{Error as HttpError, ErrorKind as HttpErrorKind};
 pub struct Auth;
 
 impl Auth {
-    pub async fn handle<Conf>(_args: std::env::Args, config: Conf) -> Result<(), Error>
+    pub async fn handle<Conf>(config: &Conf) -> Result<(), Error>
     where
         Conf: BaseUrlConfig,
         Conf: AuthDomainConfig + Send + Sync,
     {
-        match Self::print_whoami(&config).await {
+        match Self::print_whoami(config).await {
             Ok(_) => Ok(()),
             Err(HttpError {
                 request: _,
@@ -23,7 +23,7 @@ impl Auth {
 
                 auth::reset_token(config.auth_domain(), "access_token");
 
-                Self::print_whoami(&config)
+                Self::print_whoami(config)
                     .await
                     .map_err(|_| Error::AuthorizationError)
             }

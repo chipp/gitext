@@ -7,7 +7,7 @@ use std::io::Error as IoError;
 pub enum Error {
     AuthorizationError,
 
-    UnknownCommand(String),
+    _UnknownCommand(String),
     UnknownSubCommand(String, &'static [&'static str]),
     InvalidRepo,
     Detached,
@@ -22,7 +22,7 @@ pub enum Error {
     NoJiraTicket(String),
 
     NoPrsForBranch(String, HttpError),
-    NoOpenPrsForBranch(String),
+    _NoOpenPrsForBranch(String),
     NoPrWithId(u16, HttpError),
     InvalidPrId(String),
 }
@@ -67,7 +67,7 @@ impl fmt::Display for Error {
 
         match self {
             AuthorizationError => write!(f, "token is invalid"),
-            UnknownCommand(cmd) => write!(f, "unknown command {}", cmd),
+            _UnknownCommand(cmd) => write!(f, "unknown command {}", cmd),
             UnknownSubCommand(sub, supported) => write!(
                 f,
                 "unknown sub-command {}. supported sub-commands: {}",
@@ -91,7 +91,7 @@ impl fmt::Display for Error {
             NoPrsForBranch(branch, err) => {
                 write!(f, "can't find prs for branch {}: {}", branch, err)
             }
-            NoOpenPrsForBranch(branch) => {
+            _NoOpenPrsForBranch(branch) => {
                 write!(f, "there are no any open prs for branch {}", branch)
             }
 

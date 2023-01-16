@@ -12,41 +12,9 @@ use url::Url;
 pub struct Pr;
 
 impl Pr {
-    pub async fn handle<Conf>(
-        args: std::env::Args,
-        repo: Repository,
-        config: Conf,
-    ) -> Result<(), Error>
-    where
-        Conf: AuthDomainConfig + Send + Sync,
-        Conf: BaseUrlConfig,
-        Conf: JiraAuthDomainConfig + Send + Sync,
-        Conf: JiraUrlConfig,
-    {
-        let repo_id = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
-        let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
-
-        let mut args = args;
-
-        if let Some(arg) = args.next() {
-            Self::handle_argument(arg, args.next(), repo_id, &branch, repo, &config).await
-        } else {
-            let existing_pr = Self::find_existing_open_pr(&branch, &repo_id, &config).await?;
-
-            let url = existing_pr
-                .map(|pr| pr.url)
-                .unwrap_or_else(|| Self::url_for_create(&branch, &repo_id, None, &config));
-
-            Self::open_url(url)
-        }
-    }
-
-    async fn handle_argument<Conf>(
-        command: String,
-        id: Option<String>,
-        repo_id: RepoId,
-        branch: &str,
-        repo: Repository,
+    pub async fn handle<Arg: AsRef<str>, Conf>(
+        args: &[Arg],
+        repo: &Repository,
         config: &Conf,
     ) -> Result<(), Error>
     where
@@ -55,7 +23,37 @@ impl Pr {
         Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
-        match command.as_str() {
+        let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
+        let branch = get_current_branch(&repo).ok_or(Error::Detached)?;
+
+        if let Some(arg) = args.get(0) {
+            Self::handle_argument(arg, args.get(1), repo_id, &branch, repo, config).await
+        } else {
+            let existing_pr = Self::find_existing_open_pr(&branch, &repo_id, config).await?;
+
+            let url = existing_pr.map(|pr| pr.url).unwrap_or_else(|| {
+                Self::url_for_create(&branch, &repo_id, Option::<String>::None, config)
+            });
+
+            Self::open_url(url)
+        }
+    }
+
+    async fn handle_argument<Arg: AsRef<str>, Conf>(
+        command: Arg,
+        id: Option<Arg>,
+        repo_id: RepoId,
+        branch: &str,
+        repo: &Repository,
+        config: &Conf,
+    ) -> Result<(), Error>
+    where
+        Conf: AuthDomainConfig + Send + Sync,
+        Conf: BaseUrlConfig,
+        Conf: JiraAuthDomainConfig + Send + Sync,
+        Conf: JiraUrlConfig,
+    {
+        match command.as_ref() {
             "new" | "n" => Self::open_url(Self::url_for_create(branch, &repo_id, id, config)),
             "browse" | "b" => {
                 if let Some(id) = id {
@@ -64,11 +62,12 @@ impl Pr {
                     {
                         let mut segments = url.path_segments_mut().unwrap();
 
-                        let _ = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id.clone()))?;
+                        let _ = u16::from_str(id.as_ref())
+                            .map_err(|_| Error::InvalidPrId(id.as_ref().to_string()))?;
 
                         segments.push("-");
                         segments.push("merge_requests");
-                        segments.push(&id);
+                        segments.push(id.as_ref());
                     }
 
                     Self::open_url(url)
@@ -78,7 +77,8 @@ impl Pr {
             }
             "info" | "i" => {
                 if let Some(id) = id {
-                    let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id))?;
+                    let id = u16::from_str(id.as_ref())
+                        .map_err(|_| Error::InvalidPrId(id.as_ref().to_string()))?;
 
                     let client = Client::new(config);
                     let pr = client.get_pr_by_id(id, &repo_id).await?;
@@ -100,7 +100,8 @@ impl Pr {
             }
             "checkout" | "co" => {
                 let id = id.ok_or(Error::InvalidPrId("empty".to_string()))?;
-                let id = u16::from_str(&id).map_err(|_| Error::InvalidPrId(id))?;
+                let id = u16::from_str(id.as_ref())
+                    .map_err(|_| Error::InvalidPrId(id.as_ref().to_string()))?;
 
                 let client = Client::new(config);
                 let pr = client
@@ -112,7 +113,10 @@ impl Pr {
 
                 Ok(())
             }
-            _ => Err(Error::UnknownSubCommand(command, &SUPPORTED_COMMANDS)),
+            _ => Err(Error::UnknownSubCommand(
+                command.as_ref().to_string(),
+                &SUPPORTED_COMMANDS,
+            )),
         }
     }
 }
@@ -138,10 +142,10 @@ impl Pr {
         Ok(prs.into_iter().next())
     }
 
-    fn url_for_create<Conf>(
+    fn url_for_create<Arg: AsRef<str>, Conf>(
         branch: &str,
         repo_id: &RepoId,
-        target: Option<String>,
+        target: Option<Arg>,
         config: &Conf,
     ) -> Url
     where
@@ -161,7 +165,7 @@ impl Pr {
             query_pairs.append_pair("merge_request[source_branch]", &branch);
 
             if let Some(target) = target {
-                query_pairs.append_pair("merge_request[target_branch]", &target);
+                query_pairs.append_pair("merge_request[target_branch]", target.as_ref());
             }
         }
 

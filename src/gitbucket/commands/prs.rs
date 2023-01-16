@@ -13,10 +13,10 @@ use prettytable::{cell, row, Cell, Table};
 pub struct Prs;
 
 impl Prs {
-    pub async fn handle<Conf>(
-        args: std::env::Args,
-        repo: Repository,
-        config: Conf,
+    pub async fn handle<Arg: AsRef<str>, Conf>(
+        args: &[Arg],
+        repo: &Repository,
+        config: &Conf,
     ) -> Result<(), Error>
     where
         Conf: AuthDomainConfig + Send + Sync,
@@ -24,20 +24,19 @@ impl Prs {
         Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
-        let repo_id = get_current_repo_id(&repo, &config).ok_or(Error::InvalidRepo)?;
+        let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
 
-        let mut args = args;
-        let author = if let Some("my") = args.next().as_ref().map(AsRef::<str>::as_ref) {
+        let author = if let Some("my") = args.first().map(AsRef::<_>::as_ref) {
             let (username, _) = auth::user_and_password(config.auth_domain());
             Some(username)
         } else {
             None
         };
 
-        let client = Client::new(&config);
+        let client = Client::new(config);
         let prs = client.find_open_prs(&repo_id, author).await?;
 
-        Self::print_table_for_prs(&prs.values, &config).await;
+        Self::print_table_for_prs(&prs.values, config).await;
 
         Ok(())
     }

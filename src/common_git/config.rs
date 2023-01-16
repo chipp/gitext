@@ -1,4 +1,4 @@
-use std::error::Error as StdError;
+use std::{collections::HashMap, error::Error as StdError};
 
 use git2::Repository;
 use url::Url;
@@ -12,6 +12,8 @@ pub struct Config {
 
     pub jira_url: Option<Url>,
     pub jira_auth_domain: Option<String>,
+
+    pub aliases: HashMap<String, String>,
 }
 
 pub trait BaseUrlConfig {
@@ -54,7 +56,7 @@ impl JiraAuthDomainConfig for Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum Provider {
     BitBucket,
     GitLab,
@@ -115,6 +117,18 @@ impl fmt::Display for GetConfigError {
 pub fn get_config(repo: &Repository) -> Result<Config, GetConfigError> {
     let config = repo.config().unwrap();
 
+    let mut aliases = HashMap::new();
+
+    for entry in &config.entries(Some("alias.*")).unwrap() {
+        let entry = entry.unwrap();
+
+        if let (Some(name), Some(value)) = (entry.name(), entry.value()) {
+            if let Some(name) = name.strip_prefix("alias.") {
+                aliases.insert(name.to_string(), value.to_string());
+            }
+        }
+    }
+
     let provider = config
         .get_string("gitext.provider")
         .map_err(|_| GetConfigError::ProviderNotSpecified)?;
@@ -147,5 +161,6 @@ pub fn get_config(repo: &Repository) -> Result<Config, GetConfigError> {
         auth_domain,
         jira_url,
         jira_auth_domain,
+        aliases,
     })
 }

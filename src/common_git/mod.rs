@@ -1,6 +1,8 @@
 mod config;
 mod credential_helper;
 
+use std::path::Path;
+
 pub use config::{get_config, Config, GetConfigError, Provider};
 pub use config::{AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig};
 pub use credential_helper::CredentialHelper;
@@ -10,7 +12,7 @@ pub use git2::{Error as GitError, Repository};
 use git2::{Branch, BranchType, ErrorClass, ErrorCode, Remote, RepositoryOpenFlags};
 use regex::Regex;
 
-pub fn get_repo(path: &str) -> Result<Repository, GitError> {
+pub fn get_repo(path: &Path) -> Result<Repository, GitError> {
     Repository::open_ext(
         path,
         RepositoryOpenFlags::empty(),

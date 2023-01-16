@@ -2,6 +2,9 @@ mod commands {
     pub mod ticket;
 }
 
+use std::path::{Path, PathBuf};
+use std::process::{exit, Command};
+
 pub use commands::ticket::Ticket;
 
 mod common_git;
@@ -15,42 +18,128 @@ mod gitbucket;
 mod gitlab;
 mod gitlad;
 
-pub use error::Error;
+use git2::Repository;
 
-use common_git::{get_config, get_repo, Provider::*};
-use gitbucket::{
-    Auth as GitBucketAuth, Browse as GitBucketBrowse, Pr as GitBucketPr, Prs as GitBucketPrs,
-};
-use gitlad::{Auth as GitLadAuth, Browse as GitLadBrowse, Pr as GitLadPr, Prs as GitLadPrs};
-use std::env::Args;
+use common_git::{get_config, get_repo, Config, Provider::*};
+use error::Error;
 
-pub async fn handle(args: Args) -> Result<(), Error> {
+use crate::gitlad::Switch;
+
+pub type ErasedError = Box<dyn std::error::Error + Send + Sync>;
+pub type Result<T> = std::result::Result<T, ErasedError>;
+
+const SUPPORTED_COMMANDS: &[&str] = &["auth", "browse", "pr", "prs", "switch"];
+
+pub async fn handle(args: std::env::Args) -> Result<()> {
     let mut args = args;
     let _ = args.next();
 
     let path = std::env::var("REPO_PATH").unwrap_or(".".to_string());
     let path = std::fs::canonicalize(path).unwrap();
-    let path = path.to_str().unwrap();
 
-    let repo = get_repo(path)?;
+    let repo = get_repo(&path)?;
     let config = get_config(&repo)?;
 
-    match (args.next().as_ref().map(String::as_str), &config.provider) {
-        (Some("browse"), BitBucket) => GitBucketBrowse::handle(args, repo, config, &path).await,
-        (Some("auth"), BitBucket) => GitBucketAuth::handle(args, config).await,
-        (Some("pr"), BitBucket) => GitBucketPr::handle(args, repo, config).await,
-        (Some("prs"), BitBucket) => GitBucketPrs::handle(args, repo, config).await,
+    let mut args = args.collect::<Vec<_>>();
 
-        (Some("browse"), GitLab) => GitLadBrowse::handle(args, repo, config, &path).await,
-        (Some("auth"), GitLab) => GitLadAuth::handle(args, config).await,
-        (Some("pr"), GitLab) => GitLadPr::handle(args, repo, config).await,
-        (Some("prs"), GitLab) => GitLadPrs::handle(args, repo, config).await,
+    let command = args
+        .first()
+        .map(Clone::clone)
+        .expect("here should be help message ¯\\_(ツ)_/¯");
 
-        (Some("ticket"), _) => Ticket::handle(args, repo, config).await,
-        (Some(command), _) => Err(Error::UnknownCommand(command.to_string())),
-        (None, _) => {
-            // TODO: help message
-            panic!()
+    if !SUPPORTED_COMMANDS.contains(&command.as_str()) {
+        if let Some(resolved) = config.aliases.get(&command) {
+            args.remove(0);
+
+            for component in resolved.rsplit(" ") {
+                args.insert(0, component.to_string());
+            }
         }
     }
+
+    let command = args
+        .first()
+        .map(String::as_str)
+        .expect("here should be help message ¯\\_(ツ)_/¯");
+
+    let is_handled = match config.provider {
+        BitBucket => handle_bitbucket(&command, &args[1..], &repo, &config, &path).await?,
+        GitLab => handle_gitlab(&command, &args[1..], &repo, &config, &path).await?,
+    };
+
+    if !is_handled {
+        match command.as_ref() {
+            "ticket" => Ticket::handle(repo, config)?,
+            _ => exec_git_cmd(args, &path)?,
+        }
+    }
+
+    Ok(())
+}
+
+async fn handle_bitbucket<Arg: AsRef<str>>(
+    command: &str,
+    args: &[Arg],
+    repo: &Repository,
+    config: &Config,
+    path: &Path,
+) -> Result<bool> {
+    use gitbucket::{Auth, Browse, Pr, Prs};
+
+    match command {
+        "auth" => Auth::handle(config).await?,
+        "browse" => Browse::handle(args, repo, config, &path)?,
+        "pr" => Pr::handle(args, repo, config).await?,
+        "prs" => Prs::handle(args, repo, config).await?,
+        _ => return Ok(false),
+    }
+
+    Ok(true)
+}
+
+async fn handle_gitlab<Arg: AsRef<str>>(
+    command: &str,
+    args: &[Arg],
+    repo: &Repository,
+    config: &Config,
+    path: &Path,
+) -> Result<bool> {
+    use gitlad::{Auth, Browse, Pr, Prs};
+
+    match command {
+        "auth" => Auth::handle(config).await?,
+        "browse" => Browse::handle(args, repo, config, &path)?,
+        "switch" => {
+            if !Switch::handle(args, repo, config).await? {
+                return Ok(false);
+            }
+        }
+        "pr" => Pr::handle(args, repo, config).await?,
+        "prs" => Prs::handle(args, repo, config).await?,
+        _ => return Ok(false),
+    }
+
+    Ok(true)
+}
+
+fn exec_git_cmd(args: Vec<String>, path: &Path) -> Result<()> {
+    let worktree = path.to_string_lossy();
+
+    let mut path = PathBuf::from(path);
+    path.push(".git");
+    let dot_git = path.to_string_lossy();
+
+    let mut git = Command::new("git");
+
+    let git = git
+        .arg(format!("--git-dir={}", dot_git))
+        .arg(format!("--work-tree={}", worktree))
+        .args(args);
+
+    let output = git.spawn().expect("failed to execute process").wait()?;
+    if !output.success() {
+        exit(output.code().unwrap_or(-1));
+    }
+
+    Ok(())
 }

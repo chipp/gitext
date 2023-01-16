@@ -1,5 +1,5 @@
 use crate::common_git::{extract_ticket, get_current_branch, BaseUrlConfig, JiraUrlConfig};
-use crate::Error;
+use crate::{Error, Result};
 
 use git2::Repository;
 use std::process::{Command, Stdio};
@@ -7,11 +7,7 @@ use std::process::{Command, Stdio};
 pub struct Ticket;
 
 impl Ticket {
-    pub async fn handle<Conf>(
-        _args: std::env::Args,
-        repo: Repository,
-        config: Conf,
-    ) -> Result<(), Error>
+    pub fn handle<Conf>(repo: Repository, config: Conf) -> Result<()>
     where
         Conf: BaseUrlConfig,
         Conf: JiraUrlConfig,
@@ -36,6 +32,8 @@ impl Ticket {
             .stdout(Stdio::null())
             .spawn()
             .map(|_| ())
-            .map_err(|err| Error::OpenUrl(err, url))
+            .map_err(|err| Error::OpenUrl(err, url))?;
+
+        Ok(())
     }
 }
