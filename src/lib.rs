@@ -11,7 +11,6 @@ mod common_git;
 mod error;
 mod jira;
 mod shellquote;
-mod split_once;
 
 mod bitbucket;
 mod gitbucket;

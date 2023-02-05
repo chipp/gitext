@@ -60,9 +60,9 @@ impl RepoId {
     }
 
     fn from_scp(url: &str, base_url: &Url) -> Option<RepoId> {
-        let (server, path) = crate::split_once!(url, ":")?;
+        let (server, path) = url.split_once(":")?;
 
-        let host = match crate::split_once!(server, "@") {
+        let host = match server.split_once("@") {
             Some((_, host)) => host,
             None => url,
         };
