@@ -3,7 +3,7 @@ mod credential_helper;
 
 use std::path::Path;
 
-pub use config::{get_config, Config, GetConfigError, Provider};
+pub use config::{get_aliases_from_config, get_config, Config, GetConfigError, Provider};
 pub use config::{AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig};
 pub use credential_helper::CredentialHelper;
 use git2::build::CheckoutBuilder;
