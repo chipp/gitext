@@ -1,5 +1,6 @@
 use super::{PullRequest, RepoId};
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
+
 use http_client::curl::easy::Auth;
 use http_client::{Error, HttpClient};
 use serde::Deserialize;

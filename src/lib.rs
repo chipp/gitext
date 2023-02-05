@@ -10,6 +10,7 @@ pub use commands::ticket::Ticket;
 mod common_git;
 mod error;
 mod jira;
+mod shellquote;
 mod split_once;
 
 mod bitbucket;
@@ -85,8 +86,10 @@ fn resolve_alias(command: String, path: &Path, args: &mut Vec<String>) -> Result
     if let Some(resolved) = aliases.get(&command) {
         args.remove(0);
 
-        for component in resolved.rsplit(" ") {
-            args.insert(0, component.to_string());
+        let resolved = shellquote::split(&resolved).collect::<Vec<_>>();
+        for (index, result) in resolved.into_iter().enumerate() {
+            let value = result?;
+            args.insert(index, value);
         }
     }
 
@@ -144,18 +147,20 @@ async fn handle_gitlab<Arg: AsRef<str>>(
 }
 
 fn exec_git_cmd(args: Vec<String>, path: &Path) -> Result<()> {
-    let worktree = path.to_string_lossy();
-
-    let mut path = PathBuf::from(path);
-    path.push(".git");
-    let dot_git = path.to_string_lossy();
-
     let mut git = Command::new("git");
 
-    let git = git
-        .arg(format!("--git-dir={}", dot_git))
-        .arg(format!("--work-tree={}", worktree))
-        .args(args);
+    if get_repo(&path).is_ok() {
+        let worktree = path.to_string_lossy();
+
+        let mut path = PathBuf::from(path);
+        path.push(".git");
+        let dot_git = path.to_string_lossy();
+
+        git.arg(format!("--git-dir={}", dot_git))
+            .arg(format!("--work-tree={}", worktree));
+    }
+
+    let git = git.args(args);
 
     let output = git.spawn().expect("failed to execute process").wait()?;
     if !output.success() {
