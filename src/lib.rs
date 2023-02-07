@@ -2,7 +2,7 @@ mod commands {
     pub mod ticket;
 }
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{exit, Command};
 
 pub use commands::ticket::Ticket;
@@ -55,8 +55,10 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
         return exec_git_cmd(args, &path);
     }
 
-    let repo = get_repo(&path)?;
-    let config = get_config(&repo)?;
+    let (repo, config) = match repo_and_config(&path) {
+        Ok(tuple) => tuple,
+        Err(_) => return exec_git_cmd(args, &path),
+    };
 
     let is_handled = match config.provider {
         BitBucket => handle_bitbucket(&command, &args[1..], &repo, &config, &path).await?,
@@ -71,6 +73,13 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn repo_and_config(path: &Path) -> Result<(Repository, Config)> {
+    let repo = get_repo(&path)?;
+    let config = get_config(&repo)?;
+
+    Ok((repo, config))
 }
 
 fn resolve_alias(command: String, path: &Path, args: &mut Vec<String>) -> Result<()> {
@@ -148,15 +157,12 @@ async fn handle_gitlab<Arg: AsRef<str>>(
 fn exec_git_cmd(args: Vec<String>, path: &Path) -> Result<()> {
     let mut git = Command::new("git");
 
-    if get_repo(&path).is_ok() {
-        let worktree = path.to_string_lossy();
+    if let Ok(repo) = get_repo(&path) {
+        git.arg(format!("--git-dir={}", repo.path().to_string_lossy()));
 
-        let mut path = PathBuf::from(path);
-        path.push(".git");
-        let dot_git = path.to_string_lossy();
-
-        git.arg(format!("--git-dir={}", dot_git))
-            .arg(format!("--work-tree={}", worktree));
+        if let Some(workdir) = repo.workdir() {
+            git.arg(format!("--work-tree={}", workdir.to_string_lossy()));
+        }
     }
 
     let git = git.args(args);
