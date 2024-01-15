@@ -30,7 +30,7 @@ impl Auth {
 
         match client.whoami().await {
             Ok(user) => {
-                println!("You're logged in as {}", user.name.unwrap_or(user.login));
+                println!("You're logged in as {}", user.login);
                 Ok(())
             }
             Err(err) => Err(err),
