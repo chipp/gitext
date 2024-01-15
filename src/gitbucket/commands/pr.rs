@@ -35,7 +35,9 @@ impl Pr {
 
             let url = existing_pr
                 .map(|pr| pr.url(&config.base_url()))
-                .unwrap_or_else(|| Self::url_for_create(&branch, &repo_id, config));
+                .unwrap_or_else(|| {
+                    Self::url_for_create(&branch, &repo_id, Option::<String>::None, config)
+                });
 
             Self::open_url(url)
         }
@@ -56,7 +58,7 @@ impl Pr {
         Conf: JiraUrlConfig,
     {
         match command.as_ref() {
-            "new" | "n" => Self::open_url(Self::url_for_create(&branch, &repo_id, config)),
+            "new" | "n" => Self::open_url(Self::url_for_create(&branch, &repo_id, id, config)),
             "browse" | "b" => {
                 if let Some(id) = id {
                     let mut url = repo_id.url(config.base_url());
@@ -142,7 +144,12 @@ impl Pr {
         Ok(prs.into_iter().next())
     }
 
-    fn url_for_create<Conf>(branch: &str, repo_id: &RepoId, config: &Conf) -> Url
+    fn url_for_create<Arg: AsRef<str>, Conf>(
+        branch: &str,
+        repo_id: &RepoId,
+        target: Option<Arg>,
+        config: &Conf,
+    ) -> Url
     where
         Conf: BaseUrlConfig,
     {
@@ -153,10 +160,17 @@ impl Pr {
             segments.push("pull-requests");
         }
 
-        url.query_pairs_mut()
-            .append_pair("at", &branch)
-            .append_pair("create", "")
-            .append_pair("sourceBranch", &branch);
+        {
+            let mut pairs = url.query_pairs_mut();
+
+            pairs
+                .append_pair("create", "")
+                .append_pair("sourceBranch", &branch);
+
+            if let Some(target) = target {
+                pairs.append_pair("targetBranch", &target.as_ref());
+            }
+        }
 
         url
     }

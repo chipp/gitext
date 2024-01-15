@@ -132,10 +132,13 @@ impl Prs {
     }
 
     fn title_for_pr(pr: &PullRequest, max_width: usize) -> String {
-        use textwrap::{NoHyphenation, Wrapper};
+        use hyphenation::{Language, Load, Standard};
+        use textwrap::{fill, Options, WordSplitter::Hyphenation};
 
-        let wrapper = Wrapper::with_splitter(max_width, NoHyphenation);
-        wrapper.fill(&pr.title)
+        let hyphenator = Standard::from_embedded(Language::EnglishUS).unwrap();
+        let options = Options::new(max_width).word_splitter(Hyphenation(hyphenator));
+
+        fill(&pr.title, options)
     }
 
     async fn get_last_pipelines_for_prs<Conf>(

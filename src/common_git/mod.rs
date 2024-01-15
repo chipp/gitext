@@ -107,7 +107,7 @@ where
     let mut fo = git2::FetchOptions::new();
     fo.remote_callbacks(callbacks);
 
-    remote.fetch(&[], Some(&mut fo), None)?;
+    remote.fetch::<&str>(&[], Some(&mut fo), None)?;
     Ok(())
 }
 

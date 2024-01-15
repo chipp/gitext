@@ -152,10 +152,9 @@ pub fn get_config(repo: &Repository) -> Result<Config, GetConfigError> {
 
 pub fn get_aliases_from_config(config: &GitConfig) -> HashMap<String, String> {
     let mut aliases = HashMap::new();
+    let mut entries = config.entries(Some("alias.*")).unwrap();
 
-    for entry in &config.entries(Some("alias.*")).unwrap() {
-        let entry = entry.unwrap();
-
+    while let Some(Ok(entry)) = entries.next() {
         if let (Some(name), Some(value)) = (entry.name(), entry.value()) {
             if let Some(name) = name.strip_prefix("alias.") {
                 aliases.insert(name.to_string(), value.to_string());

@@ -1,6 +1,6 @@
 use super::AuthDomainConfig;
 use git2::{Cred, CredentialType, Error};
-use rpassword::prompt_password_stdout;
+use rpassword::prompt_password;
 
 pub struct CredentialHelper {
     state: CredentialHelperState,
@@ -75,7 +75,7 @@ impl CredentialHelper {
             println!();
             println!("you can add your ssh key to ssh-agent to authorize with it automatically `ssh-add ~/.ssh/id_rsa`");
 
-            prompt_password_stdout("Enter passphrase for ssh key id_rsa:").ok()
+            prompt_password("Enter passphrase for ssh key id_rsa:").ok()
         } else {
             None
         };
