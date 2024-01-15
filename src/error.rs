@@ -25,6 +25,9 @@ pub enum Error {
     _NoOpenPrsForBranch(String),
     NoPrWithId(u16, HttpError),
     InvalidPrId(String),
+
+    MissingProjectCode,
+    NotInWorkTree,
 }
 
 impl From<GitError> for Error {
@@ -97,6 +100,13 @@ impl fmt::Display for Error {
 
             NoPrWithId(id, err) => write!(f, "can't find pr with id {}: {}", id, err),
             InvalidPrId(id) => write!(f, "invalid PR id \"{}\"\nusage: git pr #42", id),
+
+            MissingProjectCode => write!(
+                f,
+                "project code is required\nusage: git create [project code] [repo name (optional)]"
+            ),
+
+            NotInWorkTree => write!(f, "not in a git repository"),
         }
     }
 }

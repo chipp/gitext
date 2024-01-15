@@ -69,6 +69,7 @@ impl Pr {
 
                         segments.push("pull-requests");
                         segments.push(&format!("{}", id));
+                        segments.push("overview");
                     }
 
                     Self::open_url(url)

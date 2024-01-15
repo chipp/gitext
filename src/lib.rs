@@ -26,7 +26,7 @@ use error::Error;
 pub type ErasedError = Box<dyn std::error::Error + Send + Sync>;
 pub type Result<T> = std::result::Result<T, ErasedError>;
 
-const SUPPORTED_COMMANDS: &[&str] = &["auth", "browse", "pr", "prs", "switch"];
+const SUPPORTED_COMMANDS: &[&str] = &["auth", "browse", "create", "pr", "prs", "switch", "ticket"];
 
 pub async fn handle(args: std::env::Args) -> Result<()> {
     let mut args = args;
@@ -111,11 +111,12 @@ async fn handle_bitbucket<Arg: AsRef<str>>(
     config: &Config,
     path: &Path,
 ) -> Result<bool> {
-    use gitbucket::{Auth, Browse, Pr, Prs, Switch};
+    use gitbucket::{Auth, Browse, Create, Pr, Prs, Switch};
 
     match command {
         "auth" => Auth::handle(config).await?,
         "browse" => Browse::handle(args, repo, config, &path)?,
+        "create" => Create::handle(args, repo, config).await?,
         "switch" => {
             if !Switch::handle(args, repo, config).await? {
                 return Ok(false);

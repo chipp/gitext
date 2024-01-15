@@ -1,5 +1,6 @@
 mod client;
 mod pull_request;
+mod repo;
 mod repo_id;
 mod user;
 

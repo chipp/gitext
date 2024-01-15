@@ -1,9 +1,11 @@
+use super::repo::Repo;
 use super::{PullRequest, RepoId};
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
 use http_client::curl::easy::Auth;
+use http_client::json::parse_json;
 use http_client::{Error, HttpClient};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub struct Client<'a> {
     inner: HttpClient<'a>,
@@ -37,6 +39,32 @@ impl Client<'_> {
 impl Client<'_> {
     pub async fn whoami(&self, username: &str) -> Result<super::user::User, Error> {
         self.inner.get(vec!["users", username]).await
+    }
+
+    pub async fn create_repo(&self, repo_id: RepoId) -> Result<Repo, Error> {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct CreateBody {
+            name: String,
+            scm_id: &'static str,
+        }
+
+        let mut request = self
+            .inner
+            .new_request(&["projects", &repo_id.project, "repos"]);
+
+        let body = CreateBody {
+            name: repo_id.name,
+            scm_id: "git",
+        };
+
+        request.set_json_body(&body);
+
+        if let Some(ref body) = request.body {
+            println!("body {}", String::from_utf8_lossy(&body));
+        }
+
+        self.inner.perform_request(request, parse_json).await
     }
 
     pub async fn find_open_prs(

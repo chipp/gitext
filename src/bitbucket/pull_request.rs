@@ -1,4 +1,5 @@
 use super::user::Actor;
+use crate::bitbucket::repo::Repo;
 use chrono::serde::ts_milliseconds;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
@@ -37,20 +38,7 @@ pub struct Ref {
     pub display_id: String,
     pub id: String,
     pub latest_commit: String,
-    pub repository: Repository,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Repository {
-    pub slug: String,
-    pub id: u16,
-    pub project: Project,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Project {
-    pub key: String,
-    pub id: u16,
+    pub repository: Repo,
 }
 
 impl PullRequest {
@@ -65,6 +53,7 @@ impl PullRequest {
             segments.push(&self.to_ref.repository.slug);
             segments.push("pull-requests");
             segments.push(&self.id.to_string());
+            segments.push("overview");
         }
 
         url
@@ -74,6 +63,7 @@ impl PullRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bitbucket::repo::{Project, RepoLinks};
     use crate::bitbucket::user::User;
 
     #[test]
@@ -84,12 +74,16 @@ mod tests {
                 display_id: "_".to_string(),
                 id: "_".to_string(),
                 latest_commit: "1".to_string(),
-                repository: Repository {
+                repository: Repo {
                     slug: "gitbucket".to_string(),
                     id: 42,
                     project: Project {
                         key: "~vburduko".to_string(),
                         id: 1,
+                    },
+                    links: RepoLinks {
+                        clone: vec![],
+                        self_: vec![],
                     },
                 },
             },
@@ -97,12 +91,16 @@ mod tests {
                 display_id: "_".to_string(),
                 id: "_".to_string(),
                 latest_commit: "1".to_string(),
-                repository: Repository {
+                repository: Repo {
                     slug: "gitbucket".to_string(),
                     id: 42,
                     project: Project {
                         key: "VB".to_string(),
                         id: 42,
+                    },
+                    links: RepoLinks {
+                        clone: vec![],
+                        self_: vec![],
                     },
                 },
             },
@@ -124,7 +122,7 @@ mod tests {
         assert_eq!(
             pr.url(&Url::parse("https://bitbucket.company.com").unwrap())
                 .as_str(),
-            "https://bitbucket.company.com/projects/VB/repos/gitbucket/pull-requests/42"
+            "https://bitbucket.company.com/projects/VB/repos/gitbucket/pull-requests/42/overview"
         )
     }
 }
