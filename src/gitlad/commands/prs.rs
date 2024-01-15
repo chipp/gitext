@@ -36,6 +36,11 @@ impl Prs {
         let filter_mode = Self::filter_mode(args, &client).await;
 
         let prs = Self::find_all_open_prs(&client, &repo_id, filter_mode).await?;
+        if prs.is_empty() {
+            println!("No open PRs in that repo");
+            return Ok(());
+        }
+
         Self::print_table_for_prs(&prs, &repo_id, config).await;
 
         Ok(())
@@ -48,11 +53,6 @@ impl Prs {
         Conf: JiraUrlConfig,
         Conf: JiraAuthDomainConfig + Send + Sync,
     {
-        if prs.is_empty() {
-            println!("No PRs for that branch");
-            return;
-        }
-
         let mut table = Table::new();
         table.set_titles(row![
             "ID",

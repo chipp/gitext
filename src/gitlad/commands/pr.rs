@@ -93,6 +93,11 @@ impl Pr {
                         .await?;
                     prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
 
+                    if prs.is_empty() {
+                        println!("No PRs for that branch");
+                        return Ok(());
+                    }
+
                     super::prs::Prs::print_table_for_prs(&prs, &repo_id, config).await;
 
                     Ok(())

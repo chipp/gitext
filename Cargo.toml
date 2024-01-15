@@ -9,7 +9,8 @@ http_client = { git = "https://github.com/chipp/http_client", tag = "0.4.10" }
 curl = { version = "0.4", features = ["static-ssl", "static-curl"] }
 curl-sys = { version = "0.4", features = ["static-ssl", "spnego"]}
 
-futures-executor = "0.3"
+futures = { version = "0.3", features = ["std"] }
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 
 url = { version = "2.5", features = ["serde"] }
 git2 = "0.18"
