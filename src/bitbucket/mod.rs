@@ -1,9 +1,11 @@
+mod build_status;
 mod client;
 mod pull_request;
 mod repo;
 mod repo_id;
 mod user;
 
+pub use build_status::MergedBuildStatus;
 pub use client::Client;
 pub use pull_request::PullRequest;
 pub use repo_id::RepoId;

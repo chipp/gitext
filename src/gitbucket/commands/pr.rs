@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
@@ -86,8 +87,14 @@ impl Pr {
 
                     let client = Client::new(config);
                     let pr = client.get_pr_by_id(id, &repo_id).await?;
+                    let build_stats = client
+                        .get_commits_build_stats(&[&pr.from_ref.latest_commit])
+                        .await?
+                        .into_iter()
+                        .map(|(k, v)| (k, v.into()))
+                        .collect::<HashMap<_, _>>();
 
-                    super::prs::Prs::print_table_for_prs(&[pr], config).await;
+                    super::prs::Prs::print_table_for_prs(&[pr], build_stats, config).await;
 
                     Ok(())
                 } else {
@@ -97,7 +104,19 @@ impl Pr {
                         .await?;
                     prs.sort_unstable_by_key(|pr| std::cmp::Reverse(pr.id));
 
-                    super::prs::Prs::print_table_for_prs(&prs, config).await;
+                    let shas = prs
+                        .iter()
+                        .map(|pr| pr.from_ref.latest_commit.as_str())
+                        .collect::<Vec<_>>();
+
+                    let build_stats = client
+                        .get_commits_build_stats(&shas)
+                        .await?
+                        .into_iter()
+                        .map(|(k, v)| (k, v.into()))
+                        .collect::<HashMap<_, _>>();
+
+                    super::prs::Prs::print_table_for_prs(&prs, build_stats, config).await;
 
                     Ok(())
                 }

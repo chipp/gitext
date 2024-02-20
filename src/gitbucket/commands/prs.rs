@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::bitbucket::{get_current_repo_id, Client, PullRequest};
+use crate::bitbucket::{get_current_repo_id, Client, MergedBuildStatus, PullRequest};
 use crate::common_git::{
     extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
@@ -36,13 +36,29 @@ impl Prs {
         let client = Client::new(config);
         let prs = client.find_open_prs(&repo_id, author).await?;
 
-        Self::print_table_for_prs(&prs.values, config).await;
+        let shas = prs
+            .values
+            .iter()
+            .map(|pr| pr.from_ref.latest_commit.as_str())
+            .collect::<Vec<_>>();
+
+        let build_statuses = client
+            .get_commits_build_stats(&shas)
+            .await?
+            .into_iter()
+            .map(|(k, v)| (k, v.into()))
+            .collect::<HashMap<_, _>>();
+
+        Self::print_table_for_prs(&prs.values, build_statuses, config).await;
 
         Ok(())
     }
 
-    pub async fn print_table_for_prs<Conf>(prs: &[PullRequest], config: &Conf)
-    where
+    pub async fn print_table_for_prs<Conf>(
+        prs: &[PullRequest],
+        build_statuses: HashMap<String, MergedBuildStatus>,
+        config: &Conf,
+    ) where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
         Conf: JiraAuthDomainConfig + Send + Sync,
@@ -80,15 +96,11 @@ impl Prs {
             let updated = pr.updated - chrono::Utc::now();
             let updated = chrono_humanize::HumanTime::from(updated);
 
-            if pr
-                .reviewers
-                .iter()
-                .any(|reviewer| &reviewer.user.name == "devops" && reviewer.approved)
-            {
-                row.add_cell(cell!(Fg->"A"));
-            } else {
-                row.add_cell(cell!(Fr->"X"));
-            }
+            match build_statuses.get(&pr.from_ref.latest_commit) {
+                Some(MergedBuildStatus::Success) => row.add_cell(cell!(Fg->"A")),
+                Some(MergedBuildStatus::InProgress) => row.add_cell(cell!(Fy->"I")),
+                Some(MergedBuildStatus::Failed) | None => row.add_cell(cell!(Fr->"X")),
+            };
 
             let approvals = pr
                 .reviewers

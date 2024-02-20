@@ -1,10 +1,13 @@
+use std::collections::HashMap;
+
+use super::build_status::BuildStats;
 use super::repo::Repo;
 use super::{PullRequest, RepoId};
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
 use http_client::curl::easy::Auth;
 use http_client::json::parse_json;
-use http_client::{Error, HttpClient};
+use http_client::{Error, HttpClient, HttpMethod};
 use serde::{Deserialize, Serialize};
 
 pub struct Client<'a> {
@@ -18,7 +21,7 @@ impl Client<'_> {
         Conf: AuthDomainConfig + Send + Sync,
     {
         let mut base_url = config.base_url().clone();
-        base_url.set_path("/rest/api/1.0/");
+        base_url.set_path("/rest");
 
         let mut inner = HttpClient::new(base_url).unwrap();
         inner.set_interceptor(move |easy| {
@@ -38,7 +41,7 @@ impl Client<'_> {
 
 impl Client<'_> {
     pub async fn whoami(&self, username: &str) -> Result<super::user::User, Error> {
-        self.inner.get(vec!["users", username]).await
+        self.inner.get(vec!["api", "1.0", "users", username]).await
     }
 
     pub async fn create_repo(&self, repo_id: RepoId) -> Result<Repo, Error> {
@@ -49,9 +52,9 @@ impl Client<'_> {
             scm_id: &'static str,
         }
 
-        let mut request = self
-            .inner
-            .new_request(&["projects", &repo_id.project, "repos"]);
+        let mut request =
+            self.inner
+                .new_request(&["api", "1.0", "projects", &repo_id.project, "repos"]);
 
         let body = CreateBody {
             name: repo_id.name,
@@ -59,6 +62,7 @@ impl Client<'_> {
         };
 
         request.set_json_body(&body);
+        request.set_method(HttpMethod::Post);
 
         if let Some(ref body) = request.body {
             println!("body {}", String::from_utf8_lossy(&body));
@@ -82,6 +86,8 @@ impl Client<'_> {
         self.inner
             .get_with_params(
                 vec![
+                    "api",
+                    "1.0",
                     "projects",
                     &repo_id.project,
                     "repos",
@@ -106,6 +112,8 @@ impl Client<'_> {
             .inner
             .get_with_params(
                 vec![
+                    "api",
+                    "1.0",
                     "projects",
                     &repo_id.project,
                     "repos",
@@ -126,6 +134,8 @@ impl Client<'_> {
     pub async fn get_pr_by_id(&self, id: u16, repo_id: &RepoId) -> Result<PullRequest, Error> {
         self.inner
             .get(vec![
+                "api",
+                "1.0",
                 "projects",
                 &repo_id.project,
                 "repos",
@@ -134,6 +144,26 @@ impl Client<'_> {
                 &id.to_string(),
             ])
             .await
+    }
+
+    pub async fn get_commit_build_stats(&self, sha: &str) -> Result<BuildStats, Error> {
+        self.inner
+            .get(&["build-status", "latest", "commits", "stats", sha])
+            .await
+    }
+
+    pub async fn get_commits_build_stats(
+        &self,
+        shas: &[&str],
+    ) -> Result<HashMap<String, BuildStats>, Error> {
+        let mut request = self
+            .inner
+            .new_request(&["build-status", "latest", "commits", "stats"]);
+
+        request.set_json_body(&shas);
+        request.set_method(HttpMethod::Post);
+
+        self.inner.perform_request(request, parse_json).await
     }
 }
 
