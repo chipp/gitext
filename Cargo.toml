@@ -10,7 +10,7 @@ curl = { version = "0.4", features = ["static-ssl", "static-curl"] }
 curl-sys = { version = "0.4", features = ["static-ssl", "spnego"]}
 
 futures = { version = "0.3", features = ["std"] }
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.36", features = ["macros", "rt-multi-thread"] }
 
 url = { version = "2.5", features = ["serde"] }
 git2 = "0.18"
@@ -30,8 +30,6 @@ rpassword = "7.3"
 prettytable-rs = "^0.10"
 textwrap = { version = "0.16", features = ["terminal_size", "hyphenation"] }
 hyphenation = { version = "0.8", features = ["embed_en-us"] }
-
-anyhow = "1.0"
 
 [dev-dependencies]
 serde_json = "*"
