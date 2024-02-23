@@ -7,14 +7,15 @@ use crate::common_git::{
 use crate::error::Error;
 use crate::jira::JiraClient;
 
+use clap::ArgMatches;
 use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
 
 pub struct Prs;
 
 impl Prs {
-    pub async fn handle<Arg: AsRef<str>, Conf>(
-        args: &[Arg],
+    pub async fn handle<Conf>(
+        args: &ArgMatches,
         repo: &Repository,
         config: &Conf,
     ) -> Result<(), Error>
@@ -26,7 +27,7 @@ impl Prs {
     {
         let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
 
-        let author = if let Some("my") = args.first().map(AsRef::<_>::as_ref) {
+        let author = if args.get_flag("my") {
             let (username, _) = auth::user_and_password(config.auth_domain());
             Some(username)
         } else {

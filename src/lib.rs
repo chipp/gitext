@@ -5,8 +5,10 @@ mod commands {
 use std::path::Path;
 use std::process::{exit, Command};
 
+use clap::ArgMatches;
 pub use commands::ticket::Ticket;
 
+mod cli;
 mod common_git;
 mod error;
 mod jira;
@@ -23,6 +25,7 @@ mod github;
 
 use git2::{Config as GitConfig, Repository};
 
+use cli::cli;
 use common_git::{get_aliases_from_config, get_config, get_repo, Config, Provider::*};
 use error::Error;
 
@@ -32,39 +35,32 @@ pub type Result<T> = std::result::Result<T, ErasedError>;
 const SUPPORTED_COMMANDS: &[&str] = &["auth", "browse", "create", "pr", "prs", "switch", "ticket"];
 
 pub async fn handle(args: std::env::Args) -> Result<()> {
-    let mut args = args;
-    let _ = args.next();
-
     let path = std::env::var("REPO_PATH").unwrap_or(".".to_string());
     let path = std::fs::canonicalize(path).unwrap();
 
     let mut args = args.collect::<Vec<_>>();
 
-    let command = args
-        .first()
-        .map(String::as_str)
-        .expect("here should be help message ¯\\_(ツ)_/¯");
+    let mut matches = cli().get_matches_from(&args);
+    let (mut command, mut sub_matches) = matches.subcommand().unwrap();
 
     if !SUPPORTED_COMMANDS.contains(&command) {
-        resolve_alias(command.to_string(), &path, &mut args)?;
+        resolve_alias(&path, &mut args)?;
+
+        matches = cli().get_matches_from(&args);
+        (command, sub_matches) = matches.subcommand().unwrap();
     }
 
-    let command = args
-        .first()
-        .map(String::as_str)
-        .expect("here should be help message ¯\\_(ツ)_/¯");
-
     if !SUPPORTED_COMMANDS.contains(&command) {
-        return exec_git_cmd(args, &path);
+        return exec_git_cmd(&args[1..], &path);
     }
 
     let (repo, config) = match repo_and_config(&path) {
         Ok(tuple) => tuple,
-        Err(_) => return exec_git_cmd(args, &path),
+        Err(_) => return exec_git_cmd(&args[1..], &path),
     };
 
     let is_handled = match config.provider {
-        BitBucket => handle_bitbucket(&command, &args[1..], &repo, &config, &path).await?,
+        BitBucket => handle_bitbucket(&command, sub_matches, &repo, &config, &path).await?,
         GitLab => handle_gitlab(&command, &args[1..], &repo, &config, &path).await?,
         GitHub => handle_github(&command, &args[1..], &repo, &config, &path).await?,
     };
@@ -72,7 +68,7 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
     if !is_handled {
         match command.as_ref() {
             "ticket" => Ticket::handle(repo, config)?,
-            _ => exec_git_cmd(args, &path)?,
+            _ => exec_git_cmd(&args[1..], &path)?,
         }
     }
 
@@ -86,7 +82,7 @@ fn repo_and_config(path: &Path) -> Result<(Repository, Config)> {
     Ok((repo, config))
 }
 
-fn resolve_alias(command: String, path: &Path, args: &mut Vec<String>) -> Result<()> {
+fn resolve_alias(path: &Path, args: &mut Vec<String>) -> Result<()> {
     let config = if let Ok(repo) = get_repo(&path) {
         repo.config()?
     } else {
@@ -95,22 +91,22 @@ fn resolve_alias(command: String, path: &Path, args: &mut Vec<String>) -> Result
 
     let aliases = get_aliases_from_config(&config);
 
-    if let Some(resolved) = aliases.get(&command) {
-        args.remove(0);
+    if let Some(resolved) = aliases.get(&args[1]) {
+        args.remove(1);
 
         let resolved = shellquote::split(&resolved).collect::<Vec<_>>();
         for (index, result) in resolved.into_iter().enumerate() {
             let value = result?;
-            args.insert(index, value);
+            args.insert(index + 1, value);
         }
     }
 
     Ok(())
 }
 
-async fn handle_bitbucket<Arg: AsRef<str>>(
+async fn handle_bitbucket(
     command: &str,
-    args: &[Arg],
+    args: &ArgMatches,
     repo: &Repository,
     config: &Config,
     path: &Path,
@@ -121,13 +117,13 @@ async fn handle_bitbucket<Arg: AsRef<str>>(
         "auth" => Auth::handle(config).await?,
         "browse" => Browse::handle(args, repo, config, &path)?,
         "create" => Create::handle(args, repo, config).await?,
+        "pr" => Pr::handle(args, repo, config).await?,
+        "prs" => Prs::handle(args, repo, config).await?,
         "switch" => {
             if !Switch::handle(args, repo, config).await? {
                 return Ok(false);
             }
         }
-        "pr" => Pr::handle(args, repo, config).await?,
-        "prs" => Prs::handle(args, repo, config).await?,
         _ => return Ok(false),
     }
 
@@ -184,7 +180,7 @@ async fn handle_github<Arg: AsRef<str>>(
     Ok(true)
 }
 
-fn exec_git_cmd(args: Vec<String>, path: &Path) -> Result<()> {
+fn exec_git_cmd(args: &[String], path: &Path) -> Result<()> {
     let mut git = Command::new("git");
 
     if let Ok(repo) = get_repo(&path) {

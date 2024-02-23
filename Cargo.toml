@@ -6,11 +6,13 @@ edition = "2018"
 
 [dependencies]
 http_client = { git = "https://github.com/chipp/http_client", tag = "0.4.10" }
-curl = { version = "0.4", features = ["static-ssl", "static-curl"] }
-curl-sys = { version = "0.4", features = ["static-ssl", "spnego"]}
+curl = { version = "0.4" }
+curl-sys = { version = "0.4" }
 
 futures = { version = "0.3", features = ["std"] }
 tokio = { version = "1.36", features = ["macros", "rt-multi-thread"] }
+
+clap = "4.5.1"
 
 url = { version = "2.5", features = ["serde"] }
 git2 = "0.18"

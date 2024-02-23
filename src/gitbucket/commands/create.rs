@@ -2,13 +2,14 @@ use crate::bitbucket::{Client, RepoId};
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 use crate::Error;
 
+use clap::ArgMatches;
 use git2::Repository;
 
 pub struct Create;
 
 impl Create {
-    pub async fn handle<Arg: AsRef<str>, Conf>(
-        args: &[Arg],
+    pub async fn handle<Conf>(
+        args: &ArgMatches,
         repo: &Repository,
         config: &Conf,
     ) -> Result<(), Error>
@@ -17,9 +18,8 @@ impl Create {
         Conf: BaseUrlConfig,
     {
         let project = args
-            .first()
-            .ok_or(Error::MissingProjectCode)?
-            .as_ref()
+            .get_one::<&str>("project")
+            .expect("required")
             .to_string();
 
         // TODO: map errors correctly
