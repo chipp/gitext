@@ -45,8 +45,8 @@ impl Client<'_> {
     pub async fn find_open_prs(
         &self,
         repo_id: &RepoId,
-        author: Option<u16>,
-        assignee: Option<u16>,
+        author: Option<u32>,
+        assignee: Option<u32>,
         page: u8,
     ) -> Result<Vec<PullRequest>, Error> {
         let page = format!("{}", page);

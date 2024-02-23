@@ -12,8 +12,8 @@ use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
 
 enum FilterMode {
-    ByAuthor(u16),
-    ByAssignee(u16),
+    ByAuthor(u32),
+    ByAssignee(u32),
 }
 
 pub struct Prs;

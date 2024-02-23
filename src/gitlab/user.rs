@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct User {
-    pub id: u16,
+    pub id: u32,
 
     #[serde(rename = "username")]
     pub name: String,
