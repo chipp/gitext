@@ -61,7 +61,7 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
 
     let is_handled = match config.provider {
         BitBucket => handle_bitbucket(&command, sub_matches, &repo, &config, &path).await?,
-        GitLab => handle_gitlab(&command, &args[1..], &repo, &config, &path).await?,
+        GitLab => handle_gitlab(&command, sub_matches, &repo, &config, &path).await?,
         GitHub => handle_github(&command, &args[1..], &repo, &config, &path).await?,
     };
 
@@ -130,9 +130,9 @@ async fn handle_bitbucket(
     Ok(true)
 }
 
-async fn handle_gitlab<Arg: AsRef<str>>(
+async fn handle_gitlab(
     command: &str,
-    args: &[Arg],
+    args: &ArgMatches,
     repo: &Repository,
     config: &Config,
     path: &Path,
@@ -142,13 +142,14 @@ async fn handle_gitlab<Arg: AsRef<str>>(
     match command {
         "auth" => Auth::handle(config).await?,
         "browse" => Browse::handle(args, repo, config, &path)?,
+        "create" => unimplemented!("to be implemented"),
+        "pr" => Pr::handle(args, repo, config).await?,
+        "prs" => Prs::handle(args, repo, config).await?,
         "switch" => {
             if !Switch::handle(args, repo, config).await? {
                 return Ok(false);
             }
         }
-        "pr" => Pr::handle(args, repo, config).await?,
-        "prs" => Prs::handle(args, repo, config).await?,
         _ => return Ok(false),
     }
 

@@ -46,12 +46,8 @@ fn pr() -> Command {
 }
 
 fn prs() -> Command {
-    Command::new("prs").arg(
-        Arg::new("my")
-            .long("my")
-            .action(ArgAction::SetTrue)
-            .required(false),
-    )
+    // TODO: specify `my` and `assigned`
+    Command::new("prs").arg(Arg::new("filter").required(false).value_name("USERNAME"))
 }
 
 fn switch() -> Command {

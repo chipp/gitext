@@ -3,7 +3,7 @@ use std::process::{Command, Stdio};
 
 use crate::bitbucket::get_current_repo_id;
 use crate::common_git::{get_current_branch, BaseUrlConfig, Repository};
-use crate::error::Error;
+use crate::Error;
 
 use clap::ArgMatches;
 

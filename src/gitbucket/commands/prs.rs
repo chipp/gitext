@@ -27,11 +27,15 @@ impl Prs {
     {
         let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
 
-        let author = if args.get_flag("my") {
-            let (username, _) = auth::user_and_password(config.auth_domain());
-            Some(username)
-        } else {
-            None
+        // TODO: handle `assigned` and username
+        let author = match args.get_one::<String>("filter").map(String::as_str) {
+            Some("my") => {
+                let (username, _) = auth::user_and_password(config.auth_domain());
+                Some(username)
+            }
+            Some("assigned") => unimplemented!(),
+            Some(_username) => unimplemented!(),
+            None => None,
         };
 
         let client = Client::new(config);

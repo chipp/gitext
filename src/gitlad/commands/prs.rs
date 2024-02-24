@@ -7,6 +7,7 @@ use crate::gitlab::{get_current_repo_id, Client, Pipeline, PipelineStatus, PullR
 use crate::jira::JiraClient;
 use crate::Error;
 
+use clap::ArgMatches;
 use futures_util::{stream, StreamExt};
 use git2::Repository;
 use prettytable::{cell, row, Cell, Table};
@@ -19,8 +20,8 @@ enum FilterMode {
 pub struct Prs;
 
 impl Prs {
-    pub async fn handle<Arg: AsRef<str>, Conf>(
-        args: &[Arg],
+    pub async fn handle<Conf>(
+        args: &ArgMatches,
         repo: &Repository,
         config: &Conf,
     ) -> Result<(), Error>
@@ -112,8 +113,8 @@ impl Prs {
         table.printstd();
     }
 
-    async fn filter_mode<Arg: AsRef<str>>(args: &[Arg], client: &Client<'_>) -> Option<FilterMode> {
-        match args.first().map(AsRef::<_>::as_ref) {
+    async fn filter_mode(args: &ArgMatches, client: &Client<'_>) -> Option<FilterMode> {
+        match args.get_one::<String>("filter").map(String::as_str) {
             Some("my") => {
                 let user = client.whoami().await.ok()?;
                 Some(FilterMode::ByAuthor(user.id))
