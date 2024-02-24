@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 mod check_suite;
 mod client;
 mod pull_request;

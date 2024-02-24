@@ -13,6 +13,7 @@ futures = { version = "0.3", features = ["std"] }
 tokio = { version = "1.36", features = ["macros", "rt-multi-thread"] }
 
 clap = "4.5.1"
+anyhow = "1.0.80"
 
 url = { version = "2.5", features = ["serde"] }
 git2 = "0.18"

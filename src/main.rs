@@ -1,4 +1,5 @@
-use gitext::{handle, Result};
+use anyhow::Result;
+use gitext::handle;
 
 #[tokio::main]
 async fn main() -> Result<()> {

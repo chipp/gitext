@@ -29,8 +29,7 @@ use cli::cli;
 use common_git::{get_aliases_from_config, get_config, get_repo, Config, Provider::*};
 use error::Error;
 
-pub type ErasedError = Box<dyn std::error::Error + Send + Sync>;
-pub type Result<T> = std::result::Result<T, ErasedError>;
+type Result<T> = std::result::Result<T, Error>;
 
 const SUPPORTED_COMMANDS: &[&str] = &["auth", "browse", "create", "pr", "prs", "switch", "ticket"];
 
@@ -96,7 +95,7 @@ fn resolve_alias(path: &Path, args: &mut Vec<String>) -> Result<()> {
 
         let resolved = shellquote::split(&resolved).collect::<Vec<_>>();
         for (index, result) in resolved.into_iter().enumerate() {
-            let value = result?;
+            let value = result.map_err(|err| Error::InvalidAlias(args[1].clone(), err))?;
             args.insert(index + 1, value);
         }
     }
@@ -195,7 +194,11 @@ fn exec_git_cmd(args: &[String], path: &Path) -> Result<()> {
 
     let git = git.args(args);
 
-    let output = git.spawn().expect("failed to execute process").wait()?;
+    let output = git
+        .spawn()
+        .expect("failed to execute process")
+        .wait()
+        .map_err(Error::FailedToExecuteGit)?;
     if !output.success() {
         exit(output.code().unwrap_or(-1));
     }

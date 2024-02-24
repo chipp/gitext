@@ -1,4 +1,6 @@
 use crate::common_git::{GetConfigError, GitError};
+use crate::shellquote::SplitError;
+
 use http_client::Error as HttpError;
 use std::error::Error as StdError;
 use std::io::Error as IoError;
@@ -7,12 +9,11 @@ use std::io::Error as IoError;
 pub enum Error {
     AuthorizationError,
 
-    _UnknownCommand(String),
-    UnknownSubCommand(String, &'static [&'static str]),
     InvalidRepo,
     Detached,
 
     GetConfig(GetConfigError),
+    InvalidAlias(String, SplitError),
 
     Git(GitError),
     Http(HttpError),
@@ -22,12 +23,11 @@ pub enum Error {
     NoJiraTicket(String),
 
     NoPrsForBranch(String, HttpError),
-    _NoOpenPrsForBranch(String),
     NoPrWithId(u16, HttpError),
-    InvalidPrId(String),
 
-    MissingProjectCode,
     NotInWorkTree,
+
+    FailedToExecuteGit(IoError),
 }
 
 impl From<GitError> for Error {
@@ -58,6 +58,9 @@ impl StdError for Error {
             OpenUrl(err, _) => Some(err),
             NoPrsForBranch(_, err) => Some(err),
             NoPrWithId(_, err) => Some(err),
+            GetConfig(err) => Some(err),
+            InvalidAlias(_, err) => Some(err),
+            FailedToExecuteGit(err) => Some(err),
             _ => None,
         }
     }
@@ -70,17 +73,12 @@ impl fmt::Display for Error {
 
         match self {
             AuthorizationError => write!(f, "token is invalid"),
-            _UnknownCommand(cmd) => write!(f, "unknown command {}", cmd),
-            UnknownSubCommand(sub, supported) => write!(
-                f,
-                "unknown sub-command {}. supported sub-commands: {}",
-                sub,
-                supported.join(", ")
-            ),
+
             InvalidRepo => write!(f, "this is not a bitbucket repository"),
             Detached => write!(f, "can't find the current branch"),
 
             GetConfig(err) => write!(f, "{}", err),
+            InvalidAlias(alias, _) => write!(f, "invalid alias for `{alias}`"),
 
             Git(err) => write!(f, "{}", err),
             Http(err) => write!(f, "{}", err),
@@ -94,19 +92,11 @@ impl fmt::Display for Error {
             NoPrsForBranch(branch, err) => {
                 write!(f, "can't find prs for branch {}: {}", branch, err)
             }
-            _NoOpenPrsForBranch(branch) => {
-                write!(f, "there are no any open prs for branch {}", branch)
-            }
-
             NoPrWithId(id, err) => write!(f, "can't find pr with id {}: {}", id, err),
-            InvalidPrId(id) => write!(f, "invalid PR id \"{}\"\nusage: git pr #42", id),
-
-            MissingProjectCode => write!(
-                f,
-                "project code is required\nusage: git create [project code] [repo name (optional)]"
-            ),
 
             NotInWorkTree => write!(f, "not in a git repository"),
+
+            FailedToExecuteGit(err) => write!(f, "failed to execute git: {}", err),
         }
     }
 }
