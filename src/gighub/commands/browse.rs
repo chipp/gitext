@@ -1,16 +1,17 @@
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::str::FromStr;
 
 use crate::common_git::{get_current_branch, BaseUrlConfig, Repository};
-use crate::error::Error;
 use crate::github::get_current_repo_id;
+use crate::Error;
+
+use clap::ArgMatches;
 
 pub struct Browse;
 
 impl Browse {
-    pub fn handle<Arg: AsRef<str>, Conf>(
-        args: &[Arg],
+    pub fn handle<Conf>(
+        args: &ArgMatches,
         repo: &Repository,
         config: &Conf,
         path: &Path,
@@ -23,20 +24,18 @@ impl Browse {
 
         let mut url = repo_id.url(config.base_url());
 
+        let command = args.subcommand().unwrap_or(("repo", args));
+
         {
             let mut segments = url.path_segments_mut().unwrap();
 
-            match (
-                args.get(0).map(AsRef::<_>::as_ref),
-                args.get(1).map(AsRef::<_>::as_ref),
-            ) {
-                (Some("pr"), Some(id)) => {
-                    let parsed_id =
-                        u16::from_str(&id).map_err(|_| Error::InvalidPrId(id.to_string()))?;
+            match command {
+                ("pr", args) => {
+                    let id: u16 = *args.get_one("id").expect("required");
                     segments.push("pull");
-                    segments.push(&format!("{}", parsed_id));
+                    segments.push(&format!("{}", id));
                 }
-                _ => {
+                ("repo", _) => {
                     segments.push("tree");
 
                     for component in branch.split("/") {
@@ -54,6 +53,7 @@ impl Browse {
                         }
                     }
                 }
+                _ => unreachable!(),
             }
         }
 

@@ -1,12 +1,11 @@
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use crate::common_git::{get_current_branch, BaseUrlConfig};
+use crate::common_git::{get_current_branch, BaseUrlConfig, Repository};
 use crate::gitlab::get_current_repo_id;
 use crate::Error;
 
 use clap::ArgMatches;
-use git2::Repository;
 
 pub struct Browse;
 

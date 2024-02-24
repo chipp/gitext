@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::common_git::{
     fetch_remote, find_remote_branch, switch_to_existing_branch, switch_to_local_branch,
     AuthDomainConfig, BaseUrlConfig,
@@ -5,14 +7,14 @@ use crate::common_git::{
 use crate::github::{get_current_repo_id, get_github_remote, Client, PullRequest};
 use crate::Error;
 
+use clap::ArgMatches;
 use git2::{Error as GitError, ErrorClass, ErrorCode, Oid, Repository};
-use std::str::FromStr;
 
 pub struct Switch;
 
 impl Switch {
-    pub async fn handle<Arg: AsRef<str>, Conf>(
-        args: &[Arg],
+    pub async fn handle<Conf>(
+        args: &ArgMatches,
         repo: &Repository,
         config: &Conf,
     ) -> Result<bool, Error>
@@ -22,9 +24,7 @@ impl Switch {
     {
         let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
 
-        let id = args
-            .first()
-            .ok_or(Error::InvalidPrId("empty".to_string()))?;
+        let id: &str = args.get_one::<String>("id").expect("required");
         let id = match u16::from_str(id.as_ref()) {
             Ok(id) => id,
             Err(_) => return Ok(false),
