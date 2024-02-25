@@ -1,4 +1,4 @@
-use crate::common_git::{GetConfigError, GitError};
+use crate::common_git::{ConfigError, GitError};
 use crate::shellquote::SplitError;
 
 use http_client::Error as HttpError;
@@ -12,7 +12,7 @@ pub enum Error {
     InvalidRepo,
     Detached,
 
-    GetConfig(GetConfigError),
+    GetConfig(ConfigError),
     InvalidAlias(String, SplitError),
 
     Git(GitError),
@@ -42,8 +42,8 @@ impl From<HttpError> for Error {
     }
 }
 
-impl From<GetConfigError> for Error {
-    fn from(err: GetConfigError) -> Self {
+impl From<ConfigError> for Error {
+    fn from(err: ConfigError) -> Self {
         Error::GetConfig(err)
     }
 }

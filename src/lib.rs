@@ -24,9 +24,12 @@ mod gighub;
 mod github;
 
 use git2::{Config as GitConfig, Repository};
+use url::Url;
 
 use cli::cli;
-use common_git::{get_aliases_from_config, get_config, get_repo, Config, Provider::*};
+use common_git::{
+    get_aliases_from_config, get_config, get_repo, set_provider, Config, ConfigError, Provider::*,
+};
 use error::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -76,9 +79,30 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
 
 fn repo_and_config(path: &Path) -> Result<(Repository, Config)> {
     let repo = get_repo(&path)?;
-    let config = get_config(&repo)?;
+
+    let config = match get_config(&repo) {
+        Ok(config) => config,
+        Err(ConfigError::ProviderNotSpecified) => {
+            if let Some(true) = is_github_repo(&repo) {
+                set_provider(&repo, GitHub)?;
+                get_config(&repo)?
+            } else {
+                return Err(ConfigError::ProviderNotSpecified.into());
+            }
+        }
+        Err(err) => return Err(err.into()),
+    };
 
     Ok((repo, config))
+}
+
+fn is_github_repo(repo: &Repository) -> Option<bool> {
+    let remote = repo.find_remote("origin").ok()?;
+
+    let base_url = Url::parse("https://github.com").unwrap();
+    let _ = github::RepoId::from_str_with_host(remote.url().unwrap(), &base_url).ok()?;
+
+    Some(true)
 }
 
 fn resolve_alias(path: &Path, args: &mut Vec<String>) -> Result<()> {

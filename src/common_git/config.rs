@@ -73,68 +73,70 @@ impl Provider {
 }
 
 #[derive(Debug)]
-pub enum GetConfigError {
+pub enum ConfigError {
     ProviderNotSpecified,
     UnknownProvider(String),
     BaseUrlNotSpecified,
     InvalidBaseUrl(String),
+    UnableToSetProvider(String),
 }
 
-impl StdError for GetConfigError {
+impl StdError for ConfigError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         None
     }
 }
 
 use std::fmt;
-impl fmt::Display for GetConfigError {
+impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GetConfigError::ProviderNotSpecified => {
+            ConfigError::ProviderNotSpecified => {
                 write!(f, "provider is not specified in .git/config")
             }
-            GetConfigError::UnknownProvider(value) => {
+            ConfigError::UnknownProvider(value) => {
                 write!(
                     f,
-                    "unknown provider \"{}\" is specified in .git/config",
-                    value
+                    "unknown provider \"{value}\" is specified in .git/config",
                 )
             }
-            GetConfigError::BaseUrlNotSpecified => {
+            ConfigError::BaseUrlNotSpecified => {
                 write!(f, "host is not specified in .git/config")
             }
-            GetConfigError::InvalidBaseUrl(value) => {
+            ConfigError::InvalidBaseUrl(value) => {
                 write!(
                     f,
-                    "invalid base_url \"{}\" is specified in .git/config",
-                    value
+                    "invalid base_url \"{value}\" is specified in .git/config",
                 )
+            }
+            ConfigError::UnableToSetProvider(value) => {
+                write!(f, "unable to set provider in .git/config: {value}")
             }
         }
     }
 }
 
-pub fn get_config(repo: &Repository) -> Result<Config, GetConfigError> {
+pub fn get_config(repo: &Repository) -> Result<Config, ConfigError> {
     let config = repo.config().unwrap();
 
     let provider = config
         .get_string("gitext.provider")
-        .map_err(|_| GetConfigError::ProviderNotSpecified)?;
+        .map_err(|_| ConfigError::ProviderNotSpecified)?;
     let provider =
-        Provider::parse_from_str(&provider).ok_or(GetConfigError::UnknownProvider(provider))?;
+        Provider::parse_from_str(&provider).ok_or(ConfigError::UnknownProvider(provider))?;
 
     let base_url = config.get_string("gitext.baseurl").or_else(|_| {
         if let Provider::GitHub = provider {
             Ok("https://github.com".to_string())
         } else {
-            Err(GetConfigError::BaseUrlNotSpecified)
+            Err(ConfigError::BaseUrlNotSpecified)
         }
     })?;
 
-    let base_url = Url::parse(&base_url).map_err(|_| GetConfigError::InvalidBaseUrl(base_url))?;
+    let base_url = Url::parse(&base_url).map_err(|_| ConfigError::InvalidBaseUrl(base_url))?;
 
     if base_url.host().is_none() {
-        return Err(GetConfigError::InvalidBaseUrl(base_url.into()));
+        return Err(ConfigError::InvalidBaseUrl(base_url.into()));
     }
 
     let auth_domain = config
@@ -155,6 +157,20 @@ pub fn get_config(repo: &Repository) -> Result<Config, GetConfigError> {
         jira_url,
         jira_auth_domain,
     })
+}
+
+pub fn set_provider(repo: &Repository, provider: Provider) -> Result<(), ConfigError> {
+    let mut config = repo.config().unwrap();
+    let key = "gitext.provider";
+    let value = match provider {
+        Provider::BitBucket => "bitbucket",
+        Provider::GitLab => "gitlab",
+        Provider::GitHub => "github",
+    };
+
+    config
+        .set_str(key, value)
+        .map_err(|err| ConfigError::UnableToSetProvider(err.message().to_string()))
 }
 
 pub fn get_aliases_from_config(config: &GitConfig) -> HashMap<String, String> {
