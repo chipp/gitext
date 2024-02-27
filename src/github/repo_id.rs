@@ -2,7 +2,7 @@ use url::Url;
 
 #[derive(Debug, PartialEq)]
 pub struct RepoId {
-    pub user: String,
+    pub owner: String,
     pub repo: String,
 }
 
@@ -25,18 +25,18 @@ impl RepoId {
             }
         }
 
-        let user;
         let repo;
+        let owner;
 
         {
             let mut components = url.path_segments()?.rev().take(2);
-            user = components.next()?;
             repo = components.next()?;
+            owner = components.next()?;
         }
 
         Some(RepoId {
-            user: String::from(repo),
-            repo: String::from(user.trim_end_matches(".git")),
+            owner: String::from(owner),
+            repo: String::from(repo.trim_end_matches(".git")),
         })
     }
 
@@ -52,17 +52,17 @@ impl RepoId {
             return None;
         }
 
-        let user;
+        let owner;
         let repo;
 
         {
             let mut path_segments = path.split("/");
-            user = path_segments.next()?;
+            owner = path_segments.next()?;
             repo = path_segments.next()?;
         }
 
         Some(RepoId {
-            user: String::from(user),
+            owner: String::from(owner),
             repo: String::from(repo.trim_end_matches(".git")),
         })
     }
@@ -72,7 +72,7 @@ impl RepoId {
 
         {
             let mut segments = url.path_segments_mut().unwrap();
-            segments.push(&self.user);
+            segments.push(&self.owner);
             segments.push(&self.repo);
         }
 
@@ -93,7 +93,7 @@ mod tests {
         assert_eq!(
             RepoId::from_url("https://github.com/chipp/gitext.git", &base_url()),
             Some(RepoId {
-                user: "chipp".to_string(),
+                owner: "chipp".to_string(),
                 repo: "gitext".to_string()
             })
         );
@@ -116,7 +116,7 @@ mod tests {
         assert_eq!(
             RepoId::from_scp("git@github.com:chipp/gitext.git", &base_url()),
             Some(RepoId {
-                user: "chipp".to_string(),
+                owner: "chipp".to_string(),
                 repo: "gitext".to_string()
             })
         );
@@ -127,7 +127,7 @@ mod tests {
         assert_eq!(
             RepoId::from_str_with_host("https://github.com/chipp/gitext.git", &base_url()),
             Ok(RepoId {
-                user: "chipp".to_string(),
+                owner: "chipp".to_string(),
                 repo: "gitext".to_string()
             })
         );
@@ -135,7 +135,7 @@ mod tests {
         assert_eq!(
             RepoId::from_str_with_host("git@github.com:chipp/gitext.git", &base_url()),
             Ok(RepoId {
-                user: "chipp".to_string(),
+                owner: "chipp".to_string(),
                 repo: "gitext".to_string()
             })
         );
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn url() {
         let repo_id = RepoId {
-            user: "chipp".to_string(),
+            owner: "chipp".to_string(),
             repo: "gitext".to_string(),
         };
 

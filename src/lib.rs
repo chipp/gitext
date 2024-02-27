@@ -42,13 +42,18 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
 
     let mut args = args.collect::<Vec<_>>();
 
-    let matches = match cli().try_get_matches_from(&args) {
+    let (repo, config) = match repo_and_config(&path) {
+        Ok(tuple) => tuple,
+        Err(_) => return exec_git_cmd(&args[1..], &path),
+    };
+
+    let matches = match cli(config.provider).try_get_matches_from(&args) {
         Ok(matches) => matches,
         Err(err) => match err.kind() {
             ClapErrorKind::InvalidSubcommand | ClapErrorKind::UnknownArgument => {
                 resolve_alias(&path, &mut args)?;
 
-                match cli().try_get_matches_from(&args) {
+                match cli(config.provider).try_get_matches_from(&args) {
                     Ok(matches) => matches,
                     Err(_) => return exec_git_cmd(&args[1..], &path),
                 }
@@ -60,11 +65,6 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
     };
 
     let (command, sub_matches) = matches.subcommand().unwrap();
-
-    let (repo, config) = match repo_and_config(&path) {
-        Ok(tuple) => tuple,
-        Err(_) => return exec_git_cmd(&args[1..], &path),
-    };
 
     let is_handled = match config.provider {
         BitBucket => handle_bitbucket(&command, sub_matches, &repo, &config, &path).await?,
@@ -191,12 +191,12 @@ async fn handle_github(
     config: &Config,
     path: &Path,
 ) -> Result<bool> {
-    use gighub::{Auth, Browse, Pr, Prs, Switch};
+    use gighub::{Auth, Browse, Create, Pr, Prs, Switch};
 
     match command {
         "auth" => Auth::handle(config).await?,
         "browse" => Browse::handle(args, repo, config, &path)?,
-        "create" => unimplemented!("to be implemented"),
+        "create" => Create::handle(args, repo, config).await?,
         "pr" => Pr::handle(args, repo, config).await?,
         "prs" => Prs::handle(repo, config).await?,
         "switch" => {

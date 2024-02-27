@@ -1,12 +1,14 @@
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 
-pub fn cli() -> Command {
+use crate::common_git::Provider;
+
+pub fn cli(provider: Provider) -> Command {
     Command::new("gitext")
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(auth())
         .subcommand(browse())
-        .subcommand(create())
+        .subcommand(create(provider))
         .subcommand(pr())
         .subcommand(prs())
         .subcommand(switch())
@@ -23,12 +25,30 @@ fn browse() -> Command {
         .subcommand(Command::new("repo"))
 }
 
-fn create() -> Command {
-    Command::new("create").arg(
-        Arg::new("project")
-            .required(false)
-            .value_name("PROJECT CODE"),
-    )
+fn create(provider: Provider) -> Command {
+    match provider {
+        Provider::BitBucket => Command::new("create").arg(
+            Arg::new("project")
+                .required(true)
+                .value_name("PROJECT CODE"),
+        ),
+        Provider::GitLab => unimplemented!("not yet implemented"),
+        Provider::GitHub => Command::new("create")
+            .arg(Arg::new("org").required(false).value_name("ORGANIZATION"))
+            .arg(
+                Arg::new("private")
+                    .short('p')
+                    .long("private")
+                    .action(ArgAction::SetTrue)
+                    .help("Create a private repository"),
+            )
+            .arg(
+                Arg::new("remote-name")
+                    .long("remote-name")
+                    .value_name("REMOTE NAME")
+                    .default_value("origin"),
+            ),
+    }
 }
 
 fn pr() -> Command {

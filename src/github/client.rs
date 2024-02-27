@@ -1,8 +1,10 @@
 use http_client::curl::easy::Auth;
 use http_client::{Error, HttpClient};
+use serde::Serialize;
 
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
+use super::repo::Repo;
 use super::{CheckSuites, PullRequest, RepoId};
 
 pub struct Client<'a> {
@@ -46,7 +48,7 @@ impl Client<'_> {
     pub async fn find_open_prs(&self, repo_id: &RepoId) -> Result<Vec<PullRequest>, Error> {
         self.inner
             .get_with_params(
-                &["repos", &repo_id.user, &repo_id.repo, "pulls"],
+                &["repos", &repo_id.owner, &repo_id.repo, "pulls"],
                 &[
                     ("state", "open"),
                     ("per_page", "100"),
@@ -66,7 +68,7 @@ impl Client<'_> {
             .get_with_params(
                 &[
                     "repos",
-                    &repo_id.user,
+                    &repo_id.owner,
                     &repo_id.repo,
                     "commits",
                     commit,
@@ -85,7 +87,7 @@ impl Client<'_> {
     ) -> Result<Vec<PullRequest>, Error> {
         self.inner
             .get_with_params(
-                &["repos", &repo_id.user, &repo_id.repo, "pulls"],
+                &["repos", &repo_id.owner, &repo_id.repo, "pulls"],
                 &[
                     ("state", state),
                     ("base", branch),
@@ -102,7 +104,7 @@ impl Client<'_> {
             .get_with_params(
                 &[
                     "repos",
-                    &repo_id.user,
+                    &repo_id.owner,
                     &repo_id.repo,
                     "pulls",
                     &format!("{pr_id}"),
@@ -114,6 +116,47 @@ impl Client<'_> {
                     ("direction", "desc"),
                 ],
             )
+            .await
+    }
+
+    pub async fn get_repo(&self, repo_id: &RepoId) -> Result<Repo, Error> {
+        self.inner
+            .get(&["repos", &repo_id.owner, &repo_id.repo])
+            .await
+    }
+
+    pub async fn create_org_repo(
+        &self,
+        org: &str,
+        name: &str,
+        private: bool,
+    ) -> Result<Repo, Error> {
+        #[derive(Serialize)]
+        struct CreateBody<'a> {
+            name: &'a str,
+            private: bool,
+        }
+
+        let mut request = self.inner.new_request(&["orgs", org, "repos"]);
+        request.set_json_body(&CreateBody { name, private });
+
+        self.inner
+            .perform_request(request, http_client::json::parse_json)
+            .await
+    }
+
+    pub async fn create_user_repo(&self, name: &str, private: bool) -> Result<Repo, Error> {
+        #[derive(Serialize)]
+        struct CreateBody<'a> {
+            name: &'a str,
+            private: bool,
+        }
+
+        let mut request = self.inner.new_request(&["user", "repos"]);
+        request.set_json_body(&CreateBody { name, private });
+
+        self.inner
+            .perform_request(request, http_client::json::parse_json)
             .await
     }
 }

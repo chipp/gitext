@@ -27,6 +27,9 @@ pub enum Error {
 
     NotInWorkTree,
 
+    RepoExistsAndPublic(String),
+    RemoteExists(String, String),
+
     FailedToExecuteGit(IoError),
 }
 
@@ -86,13 +89,21 @@ impl fmt::Display for Error {
             OpenUrl(err, url) => write!(f, "can't open URL {}: {}", url, err),
             JiraUrlNotConfigured => write!(f, "JIRA url is not specified in .git/config"),
             NoJiraTicket(branch) => {
-                write!(f, "can't find JIRA ticket in branch name \"{}\"", branch)
+                write!(f, "can't find JIRA ticket in branch name `{}`", branch)
             }
 
             NoPrsForBranch(branch, err) => {
                 write!(f, "can't find prs for branch {}: {}", branch, err)
             }
             NoPrWithId(id, err) => write!(f, "can't find pr with id {}: {}", id, err),
+
+            RepoExistsAndPublic(repo) => {
+                write!(f, "repo `{repo}` already exists and is public")
+            }
+
+            RemoteExists(remote, url) => {
+                write!(f, "remote `{remote}` already exists with url `{url}`")
+            }
 
             NotInWorkTree => write!(f, "not in a git repository"),
 
