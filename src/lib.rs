@@ -32,9 +32,9 @@ use common_git::{
 };
 use error::Error;
 
-type Result<T> = std::result::Result<T, Error>;
+use clap::error::ErrorKind as ClapErrorKind;
 
-const SUPPORTED_COMMANDS: &[&str] = &["auth", "browse", "create", "pr", "prs", "switch", "ticket"];
+type Result<T> = std::result::Result<T, Error>;
 
 pub async fn handle(args: std::env::Args) -> Result<()> {
     let path = std::env::var("REPO_PATH").unwrap_or(".".to_string());
@@ -42,19 +42,24 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
 
     let mut args = args.collect::<Vec<_>>();
 
-    let mut matches = cli().get_matches_from(&args);
-    let (mut command, mut sub_matches) = matches.subcommand().unwrap();
+    let matches = match cli().try_get_matches_from(&args) {
+        Ok(matches) => matches,
+        Err(err) => match err.kind() {
+            ClapErrorKind::InvalidSubcommand | ClapErrorKind::UnknownArgument => {
+                resolve_alias(&path, &mut args)?;
 
-    if !SUPPORTED_COMMANDS.contains(&command) {
-        resolve_alias(&path, &mut args)?;
+                match cli().try_get_matches_from(&args) {
+                    Ok(matches) => matches,
+                    Err(_) => return exec_git_cmd(&args[1..], &path),
+                }
+            }
+            _ => {
+                err.exit();
+            }
+        },
+    };
 
-        matches = cli().get_matches_from(&args);
-        (command, sub_matches) = matches.subcommand().unwrap();
-    }
-
-    if !SUPPORTED_COMMANDS.contains(&command) {
-        return exec_git_cmd(&args[1..], &path);
-    }
+    let (command, sub_matches) = matches.subcommand().unwrap();
 
     let (repo, config) = match repo_and_config(&path) {
         Ok(tuple) => tuple,

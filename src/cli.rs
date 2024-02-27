@@ -3,7 +3,6 @@ use clap::{Arg, Command};
 pub fn cli() -> Command {
     Command::new("gitext")
         .subcommand_required(true)
-        .allow_external_subcommands(true)
         .arg_required_else_help(true)
         .subcommand(auth())
         .subcommand(browse())
@@ -51,9 +50,7 @@ fn prs() -> Command {
 }
 
 fn switch() -> Command {
-    Command::new("switch")
-        .ignore_errors(true)
-        .arg(Arg::new("id").required(true).value_name("PR id"))
+    Command::new("switch").arg(Arg::new("id").required(true).value_name("PR id"))
 }
 
 fn ticket() -> Command {
