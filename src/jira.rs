@@ -1,6 +1,6 @@
 use crate::common_git::{JiraAuthDomainConfig, JiraUrlConfig};
 use crate::error::Error;
-use http_client::{curl::easy::Auth, Error as HttpError, HttpClient};
+use chipp_http::{curl::easy::Auth, Error as HttpError, HttpClient};
 use serde::Deserialize;
 
 pub struct JiraClient<'a> {
@@ -24,7 +24,7 @@ impl JiraClient<'_> {
             auth.basic(true);
             easy.http_auth(&auth).unwrap();
 
-            let (username, password) = auth::user_and_password(jira_auth_domain);
+            let (username, password) = chipp_auth::user_and_password(jira_auth_domain);
 
             easy.username(username.as_ref()).unwrap();
             easy.password(password.as_ref()).unwrap();
@@ -90,7 +90,7 @@ impl JiraClient<'_> {
         request.set_retry_count(3);
 
         self.inner
-            .perform_request(request, http_client::json::parse_json)
+            .perform_request(request, chipp_http::json::parse_json)
             .await
     }
 }

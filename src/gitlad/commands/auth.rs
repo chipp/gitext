@@ -2,7 +2,7 @@ use crate::common_git::BaseUrlConfig;
 use crate::{common_git::AuthDomainConfig, gitlab::Client};
 
 use crate::Error;
-use http_client::{Error as HttpError, ErrorKind as HttpErrorKind};
+use chipp_http::{Error as HttpError, ErrorKind as HttpErrorKind};
 
 pub struct Auth;
 
@@ -21,7 +21,7 @@ impl Auth {
             Err(err) => {
                 println!("{:#?}", err);
 
-                auth::reset_token(config.auth_domain(), "access_token");
+                chipp_auth::reset_token(config.auth_domain(), "access_token");
 
                 Self::print_whoami(config)
                     .await
@@ -30,7 +30,7 @@ impl Auth {
         }
     }
 
-    async fn print_whoami<Conf>(config: &Conf) -> Result<(), http_client::Error>
+    async fn print_whoami<Conf>(config: &Conf) -> Result<(), chipp_http::Error>
     where
         Conf: BaseUrlConfig,
         Conf: AuthDomainConfig + Send + Sync,

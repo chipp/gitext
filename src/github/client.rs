@@ -1,5 +1,5 @@
-use http_client::curl::easy::Auth;
-use http_client::{Error, HttpClient};
+use chipp_http::curl::easy::Auth;
+use chipp_http::{Error, HttpClient};
 use serde::Serialize;
 
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
@@ -28,7 +28,7 @@ impl Client<'_> {
             auth.basic(true);
             easy.http_auth(&auth).unwrap();
 
-            let (username, password) = auth::user_and_password(config.auth_domain());
+            let (username, password) = chipp_auth::user_and_password(config.auth_domain());
 
             easy.username(username.as_ref()).unwrap();
             easy.password(password.as_ref()).unwrap();
@@ -141,7 +141,7 @@ impl Client<'_> {
         request.set_json_body(&CreateBody { name, private });
 
         self.inner
-            .perform_request(request, http_client::json::parse_json)
+            .perform_request(request, chipp_http::json::parse_json)
             .await
     }
 
@@ -156,7 +156,7 @@ impl Client<'_> {
         request.set_json_body(&CreateBody { name, private });
 
         self.inner
-            .perform_request(request, http_client::json::parse_json)
+            .perform_request(request, chipp_http::json::parse_json)
             .await
     }
 }

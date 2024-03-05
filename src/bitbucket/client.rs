@@ -5,9 +5,9 @@ use super::repo::Repo;
 use super::{PullRequest, RepoId};
 use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
-use http_client::curl::easy::Auth;
-use http_client::json::parse_json;
-use http_client::{Error, HttpClient, HttpMethod};
+use chipp_http::curl::easy::Auth;
+use chipp_http::json::parse_json;
+use chipp_http::{Error, HttpClient, HttpMethod};
 use serde::{Deserialize, Serialize};
 
 pub struct Client<'a> {
@@ -29,7 +29,7 @@ impl Client<'_> {
             auth.basic(true);
             easy.http_auth(&auth).unwrap();
 
-            let (username, password) = auth::user_and_password(config.auth_domain());
+            let (username, password) = chipp_auth::user_and_password(config.auth_domain());
 
             easy.username(username.as_ref()).unwrap();
             easy.password(password.as_ref()).unwrap();

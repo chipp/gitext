@@ -30,7 +30,7 @@ impl Prs {
         // TODO: handle `assigned` and username
         let author = match args.get_one::<String>("filter").map(String::as_str) {
             Some("my") => {
-                let (username, _) = auth::user_and_password(config.auth_domain());
+                let (username, _) = chipp_auth::user_and_password(config.auth_domain());
                 Some(username)
             }
             Some("assigned") => unimplemented!(),

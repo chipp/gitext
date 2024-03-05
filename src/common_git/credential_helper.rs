@@ -53,7 +53,7 @@ impl CredentialHelper {
                 }
             }
         } else if allowed_types.is_user_pass_plaintext() {
-            let (username, password) = auth::user_and_password(&config.auth_domain());
+            let (username, password) = chipp_auth::user_and_password(&config.auth_domain());
             self.state = UserPass;
 
             Cred::userpass_plaintext(&username, &password)

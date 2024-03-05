@@ -96,16 +96,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ad32ce52e4161730f7098c077cd2ed6229b5804ccf99e5366be1ab72a98b4e1"
 
 [[package]]
-name = "auth"
-version = "2.1.0"
-source = "git+https://github.com/chipp/auth?tag=2.1.0#f819a9eb59d7f5bd09e1119bd3a69d1d2c9df174"
-dependencies = [
- "core-foundation",
- "rpassword",
- "security-framework-sys",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -167,6 +157,32 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "chipp_auth"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "216bc7a6d6455eaa8afaa3453f1573054559f96626445f94ca1154596184dbdd"
+dependencies = [
+ "core-foundation",
+ "rpassword",
+ "security-framework-sys",
+]
+
+[[package]]
+name = "chipp_http"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a052c4b2b09ffc70595afeeffba8b30258f9ba554b78ec690ebd8b0469d7c517"
+dependencies = [
+ "curl",
+ "futures-channel",
+ "log",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "url",
+]
 
 [[package]]
 name = "chrono"
@@ -491,17 +507,15 @@ name = "gitext"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "auth",
+ "chipp_auth",
+ "chipp_http",
  "chrono",
  "chrono-humanize",
  "clap",
- "curl",
- "curl-sys",
  "dirs",
  "futures",
  "futures-util",
  "git2",
- "http_client",
  "hyphenation",
  "prettytable-rs",
  "regex",
@@ -518,19 +532,6 @@ name = "hermit-abi"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd5256b483761cd23699d0da46cc6fd2ee3be420bbe6d020ae4a091e70b7e9fd"
-
-[[package]]
-name = "http_client"
-version = "0.4.10"
-source = "git+https://github.com/chipp/http_client?tag=0.4.10#006766370b9667c7de85bf486df8b51aa0e43ab3"
-dependencies = [
- "curl",
- "futures-channel",
- "serde",
- "serde_derive",
- "serde_json",
- "url",
-]
 
 [[package]]
 name = "hyphenation"

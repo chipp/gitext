@@ -13,7 +13,7 @@ impl Auth {
         match Self::print_whoami(config).await {
             Ok(_) => Ok(()),
             Err(_) => {
-                auth::reset_user_and_pass(config.auth_domain());
+                chipp_auth::reset_user_and_pass(config.auth_domain());
                 Self::print_whoami(config)
                     .await
                     .map_err(|_| Error::AuthorizationError)
@@ -21,13 +21,13 @@ impl Auth {
         }
     }
 
-    async fn print_whoami<Conf>(config: &Conf) -> Result<(), http_client::Error>
+    async fn print_whoami<Conf>(config: &Conf) -> Result<(), chipp_http::Error>
     where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
     {
         let client = Client::new(config);
-        let (username, _) = auth::user_and_password(config.auth_domain());
+        let (username, _) = chipp_auth::user_and_password(config.auth_domain());
 
         match client.whoami(&username).await {
             Ok(user) => {

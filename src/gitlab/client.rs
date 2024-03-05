@@ -2,7 +2,7 @@ use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 
 use super::{user::User, Pipeline, PullRequest, RepoId};
 
-use http_client::{Error, HttpClient};
+use chipp_http::{Error, HttpClient};
 
 pub struct Client<'a> {
     inner: HttpClient<'a>,
@@ -23,7 +23,7 @@ impl Client<'_> {
             "Authorization",
             &format!(
                 "Bearer {}",
-                auth::token(config.auth_domain(), "access_token")
+                chipp_auth::token(config.auth_domain(), "access_token")
             ),
         )]);
 
