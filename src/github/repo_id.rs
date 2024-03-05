@@ -1,6 +1,6 @@
 use url::Url;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RepoId {
     pub owner: String,
     pub repo: String,

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, error::Error as StdError};
+use std::collections::HashMap;
+use std::error::Error as StdError;
+use std::fmt;
+use std::str::FromStr;
 
 use git2::{Config as GitConfig, Repository};
 use url::Url;
@@ -12,6 +15,18 @@ pub struct Config {
 
     pub jira_url: Option<Url>,
     pub jira_auth_domain: Option<String>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            provider: Provider::GitHub,
+            base_url: Url::parse("https://github.com").unwrap(),
+            auth_domain: "github.com".to_string(),
+            jira_url: None,
+            jira_auth_domain: None,
+        }
+    }
 }
 
 pub trait BaseUrlConfig {
@@ -61,13 +76,25 @@ pub enum Provider {
     GitHub,
 }
 
-impl Provider {
-    fn parse_from_str(raw: &str) -> Option<Self> {
+impl FromStr for Provider {
+    type Err = ConfigError;
+
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
         match raw.to_lowercase().as_str() {
-            "bitbucket" => Some(Provider::BitBucket),
-            "gitlab" => Some(Provider::GitLab),
-            "github" => Some(Provider::GitHub),
-            _ => None,
+            "bitbucket" => Ok(Provider::BitBucket),
+            "gitlab" => Ok(Provider::GitLab),
+            "github" => Ok(Provider::GitHub),
+            _ => Err(ConfigError::UnknownProvider(raw.to_string())),
+        }
+    }
+}
+
+impl fmt::Display for Provider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Provider::BitBucket => write!(f, "bitbucket"),
+            Provider::GitLab => write!(f, "gitlab"),
+            Provider::GitHub => write!(f, "github"),
         }
     }
 }
@@ -78,7 +105,7 @@ pub enum ConfigError {
     UnknownProvider(String),
     BaseUrlNotSpecified,
     InvalidBaseUrl(String),
-    UnableToSetProvider(String),
+    UnableToUpdateConfig(String),
 }
 
 impl StdError for ConfigError {
@@ -87,7 +114,6 @@ impl StdError for ConfigError {
     }
 }
 
-use std::fmt;
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -109,8 +135,8 @@ impl fmt::Display for ConfigError {
                     "invalid base_url \"{value}\" is specified in .git/config",
                 )
             }
-            ConfigError::UnableToSetProvider(value) => {
-                write!(f, "unable to set provider in .git/config: {value}")
+            ConfigError::UnableToUpdateConfig(value) => {
+                write!(f, "unable to update config at .git/config: {value}")
             }
         }
     }
@@ -122,8 +148,8 @@ pub fn get_config(repo: &Repository) -> Result<Config, ConfigError> {
     let provider = config
         .get_string("gitext.provider")
         .map_err(|_| ConfigError::ProviderNotSpecified)?;
-    let provider =
-        Provider::parse_from_str(&provider).ok_or(ConfigError::UnknownProvider(provider))?;
+
+    let provider = Provider::from_str(&provider)?;
 
     let base_url = config.get_string("gitext.baseurl").or_else(|_| {
         if let Provider::GitHub = provider {
@@ -159,6 +185,40 @@ pub fn get_config(repo: &Repository) -> Result<Config, ConfigError> {
     })
 }
 
+pub fn set_config(repo: &Repository, config: &Config) -> Result<(), ConfigError> {
+    let mut repo_config = repo.config().unwrap();
+
+    repo_config
+        .set_str("gitext.provider", &config.provider.to_string())
+        .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))?;
+
+    repo_config
+        .set_str("gitext.baseurl", config.base_url.as_str())
+        .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))?;
+
+    repo_config
+        .set_str("gitext.authdomain", &config.auth_domain)
+        .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))?;
+
+    if let Some(jira_url) = &config.jira_url {
+        repo_config
+            .set_str("gitext.jiraurl", jira_url.as_str())
+            .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))?;
+    } else {
+        repo_config.remove("gitext.jiraurl").ok();
+    }
+
+    if let Some(jira_auth_domain) = &config.jira_auth_domain {
+        repo_config
+            .set_str("gitext.jiraauthdomain", jira_auth_domain)
+            .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))?;
+    } else {
+        repo_config.remove("gitext.jiraauthdomain").ok();
+    }
+
+    Ok(())
+}
+
 pub fn set_provider(repo: &Repository, provider: Provider) -> Result<(), ConfigError> {
     let mut config = repo.config().unwrap();
     let key = "gitext.provider";
@@ -170,7 +230,7 @@ pub fn set_provider(repo: &Repository, provider: Provider) -> Result<(), ConfigE
 
     config
         .set_str(key, value)
-        .map_err(|err| ConfigError::UnableToSetProvider(err.message().to_string()))
+        .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))
 }
 
 pub fn get_aliases_from_config(config: &GitConfig) -> HashMap<String, String> {

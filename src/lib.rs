@@ -24,6 +24,7 @@ mod gighub;
 mod github;
 
 use git2::{Config as GitConfig, Repository};
+use git2::{ErrorClass as GitErrorClass, ErrorCode as GitErrorCode};
 use url::Url;
 
 use cli::cli;
@@ -33,6 +34,8 @@ use common_git::{
 use error::Error;
 
 use clap::error::ErrorKind as ClapErrorKind;
+
+use crate::common_git::Provider;
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -44,7 +47,26 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
 
     let (repo, config) = match repo_and_config(&path) {
         Ok(tuple) => tuple,
-        Err(_) => return exec_git_cmd(&args[1..], &path),
+        Err(Error::Git(err))
+            if err.class() == GitErrorClass::Repository && err.code() == GitErrorCode::NotFound =>
+        {
+            let matches = match cli(Provider::GitHub).try_get_matches_from(&args) {
+                Ok(matches) => matches,
+                Err(_) => {
+                    return exec_git_cmd(&args[1..], &path);
+                }
+            };
+
+            if let Some(("clone", args)) = matches.subcommand() {
+                let config = Config::default();
+                return handle_github_clone(args, &config, &path).await;
+            } else {
+                return exec_git_cmd(&args[1..], &path);
+            }
+        }
+        Err(_) => {
+            return exec_git_cmd(&args[1..], &path);
+        }
     };
 
     let matches = match cli(config.provider).try_get_matches_from(&args) {
@@ -208,6 +230,10 @@ async fn handle_github(
     }
 
     Ok(true)
+}
+
+async fn handle_github_clone(args: &ArgMatches, config: &Config, path: &Path) -> Result<()> {
+    gighub::Clone::handle(args, config, path).await
 }
 
 fn exec_git_cmd(args: &[String], path: &Path) -> Result<()> {

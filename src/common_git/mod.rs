@@ -4,7 +4,7 @@ mod credential_helper;
 use std::path::Path;
 
 pub use config::{
-    get_aliases_from_config, get_config, set_provider, Config, ConfigError, Provider,
+    get_aliases_from_config, get_config, set_config, set_provider, Config, ConfigError, Provider,
 };
 pub use config::{AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig};
 pub use credential_helper::CredentialHelper;
@@ -111,6 +111,28 @@ where
 
     remote.fetch::<&str>(&[], Some(&mut fo), None)?;
     Ok(())
+}
+
+pub fn clone_repo<Conf>(url: &str, path: &Path, config: &Conf) -> Result<Repository, GitError>
+where
+    Conf: AuthDomainConfig,
+{
+    use git2::build::RepoBuilder;
+
+    let mut credential_helper = CredentialHelper::new();
+
+    let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.credentials(move |url, username_from_url, allowed_types| {
+        credential_helper.credentials(url, username_from_url, allowed_types, config)
+    });
+
+    let mut fo = git2::FetchOptions::new();
+    fo.remote_callbacks(callbacks);
+
+    let mut builder = RepoBuilder::new();
+    builder.fetch_options(fo);
+
+    builder.clone(url, path)
 }
 
 pub fn extract_ticket<'b>(branch: &'b str) -> Option<&'b str> {

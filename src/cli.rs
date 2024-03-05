@@ -1,3 +1,5 @@
+mod github_repo_id_parser;
+
 use clap::{Arg, ArgAction, Command};
 
 use crate::common_git::Provider;
@@ -8,6 +10,7 @@ pub fn cli(provider: Provider) -> Command {
         .arg_required_else_help(true)
         .subcommand(auth())
         .subcommand(browse())
+        .subcommand(clone())
         .subcommand(create(provider))
         .subcommand(pr())
         .subcommand(prs())
@@ -23,6 +26,15 @@ fn browse() -> Command {
     Command::new("browse")
         .subcommand(Command::new("pr").arg(id(true)))
         .subcommand(Command::new("repo"))
+}
+
+fn clone() -> Command {
+    Command::new("clone").arg(
+        Arg::new("repo")
+            .required(true)
+            .value_name("ORGANIZATION/REPO")
+            .value_parser(github_repo_id_parser::GithubRepoIdParser),
+    )
 }
 
 fn create(provider: Provider) -> Command {
