@@ -2,7 +2,7 @@ mod github_repo_id_parser;
 
 use clap::{Arg, ArgAction, Command};
 
-use crate::common_git::Provider;
+use crate::git::Provider;
 
 pub fn cli(provider: Provider) -> Command {
     Command::new("gitext")

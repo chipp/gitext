@@ -33,3 +33,7 @@ hyphenation = { version = "0.8", features = ["embed_en-us"] }
 
 [dev-dependencies]
 serde_json = "*"
+
+[features]
+default = ["git-cli"]
+git-cli = []

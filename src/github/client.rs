@@ -2,7 +2,7 @@ use chipp_http::curl::easy::Auth;
 use chipp_http::{Error, HttpClient};
 use serde::Serialize;
 
-use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
+use crate::git::{AuthDomainConfig, BaseUrlConfig};
 
 use super::repo::Repo;
 use super::{CheckSuites, PullRequest, RepoId};

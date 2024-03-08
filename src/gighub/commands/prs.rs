@@ -1,4 +1,4 @@
-use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
+use crate::git::{AuthDomainConfig, BaseUrlConfig};
 use crate::github::{get_current_repo_id, Client, Conclusion, PullRequest, RepoId, State, Status};
 
 use crate::Error;

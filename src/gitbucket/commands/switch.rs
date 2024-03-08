@@ -1,14 +1,14 @@
 use std::str::FromStr;
 
 use crate::bitbucket::{get_bitbucket_remote, get_current_repo_id, Client, PullRequest};
-use crate::common_git::{
+use crate::git::{
     fetch_remote, find_remote_branch, switch_to_existing_branch, switch_to_local_branch,
     AuthDomainConfig, BaseUrlConfig,
 };
 use crate::Error;
 
 use clap::ArgMatches;
-use git2::{Error as GitError, ErrorClass, ErrorCode, Oid, Repository};
+use git2::{ErrorClass, ErrorCode, Oid, Repository};
 
 pub struct Switch;
 
@@ -45,14 +45,14 @@ impl Switch {
         pr: &PullRequest,
         repo: &Repository,
         config: &Conf,
-    ) -> Result<(), GitError>
+    ) -> Result<(), Error>
     where
         Conf: BaseUrlConfig,
         Conf: AuthDomainConfig,
     {
         let branch_name: &str = &pr.from_ref.display_id;
         let mut remote = get_bitbucket_remote(&repo, config).unwrap();
-        fetch_remote(&mut remote, config)?;
+        fetch_remote(&mut remote, repo, config)?;
 
         match find_remote_branch(branch_name, &remote, &repo) {
             Ok(remote_branch) => switch_to_existing_branch(branch_name, remote_branch, repo),
@@ -66,7 +66,7 @@ impl Switch {
                 let local_branch = repo.branch(&pr.from_ref.display_id, &commit, false)?;
                 switch_to_local_branch(local_branch, &repo)
             }
-            Err(err) => Err(err),
+            Err(err) => Err(err.into()),
         }
     }
 }

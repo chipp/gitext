@@ -2,15 +2,11 @@ mod commands {
     pub mod ticket;
 }
 
-use std::path::Path;
-use std::process::{exit, Command};
-
-use clap::ArgMatches;
 pub use commands::ticket::Ticket;
 
 mod cli;
-mod common_git;
 mod error;
+mod git;
 mod jira;
 mod shellquote;
 
@@ -23,19 +19,23 @@ mod gitlad;
 mod gighub;
 mod github;
 
+use std::path::Path;
+
 use git2::{Config as GitConfig, Repository};
 use git2::{ErrorClass as GitErrorClass, ErrorCode as GitErrorCode};
 use url::Url;
-
-use cli::cli;
-use common_git::{
-    get_aliases_from_config, get_config, get_repo, set_provider, Config, ConfigError, Provider::*,
-};
-use error::Error;
-
+use clap::ArgMatches;
 use clap::error::ErrorKind as ClapErrorKind;
 
-use crate::common_git::Provider;
+
+use cli::cli;
+use error::Error;
+use git::{
+    exec_git_cmd, get_aliases_from_config, get_config, get_repo, set_provider, Config, ConfigError,
+    Provider::*,
+};
+
+
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -50,10 +50,10 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
         Err(Error::Git(err))
             if err.class() == GitErrorClass::Repository && err.code() == GitErrorCode::NotFound =>
         {
-            let matches = match cli(Provider::GitHub).try_get_matches_from(&args) {
+            let matches = match cli(GitHub).try_get_matches_from(&args) {
                 Ok(matches) => matches,
                 Err(_) => {
-                    return exec_git_cmd(&args[1..], &path);
+                    return exec_git_cmd(&args[1..], None);
                 }
             };
 
@@ -61,11 +61,11 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
                 let config = Config::default();
                 return handle_github_clone(args, &config, &path).await;
             } else {
-                return exec_git_cmd(&args[1..], &path);
+                return exec_git_cmd(&args[1..], None);
             }
         }
         Err(_) => {
-            return exec_git_cmd(&args[1..], &path);
+            return exec_git_cmd(&args[1..], None);
         }
     };
 
@@ -77,7 +77,7 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
 
                 match cli(config.provider).try_get_matches_from(&args) {
                     Ok(matches) => matches,
-                    Err(_) => return exec_git_cmd(&args[1..], &path),
+                    Err(_) => return exec_git_cmd(&args[1..], Some(&repo)),
                 }
             }
             _ => {
@@ -97,7 +97,7 @@ pub async fn handle(args: std::env::Args) -> Result<()> {
     if !is_handled {
         match command.as_ref() {
             "ticket" => Ticket::handle(repo, config)?,
-            _ => exec_git_cmd(&args[1..], &path)?,
+            _ => exec_git_cmd(&args[1..], Some(&repo))?,
         }
     }
 
@@ -234,29 +234,4 @@ async fn handle_github(
 
 async fn handle_github_clone(args: &ArgMatches, config: &Config, path: &Path) -> Result<()> {
     gighub::Clone::handle(args, config, path).await
-}
-
-fn exec_git_cmd(args: &[String], path: &Path) -> Result<()> {
-    let mut git = Command::new("git");
-
-    if let Ok(repo) = get_repo(&path) {
-        git.arg(format!("--git-dir={}", repo.path().to_string_lossy()));
-
-        if let Some(workdir) = repo.workdir() {
-            git.arg(format!("--work-tree={}", workdir.to_string_lossy()));
-        }
-    }
-
-    let git = git.args(args);
-
-    let output = git
-        .spawn()
-        .expect("failed to execute process")
-        .wait()
-        .map_err(Error::FailedToExecuteGit)?;
-    if !output.success() {
-        exit(output.code().unwrap_or(-1));
-    }
-
-    Ok(())
 }

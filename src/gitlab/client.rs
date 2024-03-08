@@ -1,4 +1,4 @@
-use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
+use crate::git::{AuthDomainConfig, BaseUrlConfig};
 
 use super::{user::User, Pipeline, PullRequest, RepoId};
 

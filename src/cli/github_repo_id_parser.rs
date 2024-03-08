@@ -5,6 +5,7 @@ use clap::{
     error::{ContextKind, ContextValue, ErrorKind},
     Arg, Command, Error,
 };
+use url::Url;
 
 use crate::github::RepoId;
 
@@ -29,6 +30,11 @@ impl TypedValueParser for GithubRepoIdParser {
         let value = value
             .to_str()
             .ok_or(Error::new(ErrorKind::InvalidUtf8).with_cmd(cmd))?;
+
+        let base_url = Url::parse("https://github.com").unwrap();
+        if RepoId::from_str_with_host(value, &base_url).is_ok() {
+            return Err(Error::new(ErrorKind::ValueValidation));
+        }
 
         let components = value.split("/").collect::<Vec<_>>();
 

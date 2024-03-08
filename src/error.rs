@@ -1,7 +1,8 @@
-use crate::common_git::{ConfigError, GitError};
+use crate::git::ConfigError;
 use crate::shellquote::SplitError;
 
 use chipp_http::Error as HttpError;
+use git2::Error as GitError;
 use std::error::Error as StdError;
 use std::io::Error as IoError;
 

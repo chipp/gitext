@@ -1,5 +1,5 @@
-use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
 use crate::error::Error;
+use crate::git::{AuthDomainConfig, BaseUrlConfig};
 use crate::github::Client;
 
 pub struct Auth;

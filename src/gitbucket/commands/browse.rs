@@ -2,10 +2,11 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use crate::bitbucket::get_current_repo_id;
-use crate::common_git::{get_current_branch, BaseUrlConfig, Repository};
+use crate::git::{get_current_branch, BaseUrlConfig};
 use crate::Error;
 
 use clap::ArgMatches;
+use git2::Repository;
 
 pub struct Browse;
 

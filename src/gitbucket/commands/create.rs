@@ -1,5 +1,5 @@
 use crate::bitbucket::{Client, RepoId};
-use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
+use crate::git::{AuthDomainConfig, BaseUrlConfig};
 use crate::Error;
 
 use clap::ArgMatches;

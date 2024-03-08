@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use crate::bitbucket::{get_current_repo_id, Client, MergedBuildStatus, PullRequest};
-use crate::common_git::{
+use crate::error::Error;
+use crate::git::{
     extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
-use crate::error::Error;
 use crate::jira::JiraClient;
 
 use clap::ArgMatches;

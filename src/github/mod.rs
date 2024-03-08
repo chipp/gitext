@@ -13,7 +13,7 @@ pub use client::Client;
 pub use pull_request::{PullRequest, State};
 pub use repo_id::RepoId;
 
-use crate::common_git::BaseUrlConfig;
+use crate::git::BaseUrlConfig;
 use git2::{Remote, Repository};
 
 pub fn get_current_repo_id<Conf>(repo: &Repository, config: &Conf) -> Option<RepoId>

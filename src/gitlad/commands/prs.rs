@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::common_git::{
+use crate::git::{
     extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
 use crate::gitlab::{get_current_repo_id, Client, Pipeline, PipelineStatus, PullRequest, RepoId};

@@ -18,7 +18,7 @@ mod user;
 
 use git2::{Remote, Repository};
 
-use crate::common_git::BaseUrlConfig;
+use crate::git::BaseUrlConfig;
 
 pub fn get_current_repo_id<Conf>(repo: &Repository, config: &Conf) -> Option<RepoId>
 where

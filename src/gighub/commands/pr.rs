@@ -1,6 +1,6 @@
 use std::process::{Command, Stdio};
 
-use crate::common_git::{
+use crate::git::{
     fetch_remote, find_remote_branch, get_current_branch, switch_to_existing_branch,
     switch_to_local_branch, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
 };
@@ -8,7 +8,7 @@ use crate::github::{get_current_repo_id, get_github_remote, Client, PullRequest,
 use crate::Error;
 
 use clap::ArgMatches;
-use git2::{Error as GitError, ErrorClass, ErrorCode, Oid, Repository};
+use git2::{ErrorClass, ErrorCode, Oid, Repository};
 use url::Url;
 
 pub struct Pr;
@@ -166,14 +166,14 @@ impl Pr {
         pr: &PullRequest,
         repo: &Repository,
         config: &Conf,
-    ) -> Result<(), GitError>
+    ) -> Result<(), Error>
     where
         Conf: BaseUrlConfig,
         Conf: AuthDomainConfig,
     {
         let branch_name: &str = &pr.head.reference;
         let mut remote = get_github_remote(&repo, config).unwrap();
-        fetch_remote(&mut remote, config)?;
+        fetch_remote(&mut remote, repo, config)?;
 
         match find_remote_branch(branch_name, &remote, &repo) {
             Ok(remote_branch) => switch_to_existing_branch(branch_name, remote_branch, repo),
@@ -187,7 +187,7 @@ impl Pr {
                 let local_branch = repo.branch(&pr.head.reference, &commit, false)?;
                 switch_to_local_branch(local_branch, &repo)
             }
-            Err(err) => Err(err),
+            Err(err) => Err(err.into()),
         }
     }
 }

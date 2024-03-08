@@ -1,4 +1,4 @@
-use crate::common_git::{extract_ticket, get_current_branch, BaseUrlConfig, JiraUrlConfig};
+use crate::git::{extract_ticket, get_current_branch, BaseUrlConfig, JiraUrlConfig};
 use crate::{Error, Result};
 
 use git2::Repository;

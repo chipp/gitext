@@ -1,5 +1,5 @@
-use crate::common_git::BaseUrlConfig;
-use crate::{common_git::AuthDomainConfig, gitlab::Client};
+use crate::git::{AuthDomainConfig, BaseUrlConfig};
+use crate::gitlab::Client;
 
 use crate::Error;
 use chipp_http::{Error as HttpError, ErrorKind as HttpErrorKind};

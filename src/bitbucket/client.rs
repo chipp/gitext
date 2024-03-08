@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::build_status::BuildStats;
 use super::repo::Repo;
 use super::{PullRequest, RepoId};
-use crate::common_git::{AuthDomainConfig, BaseUrlConfig};
+use crate::git::{AuthDomainConfig, BaseUrlConfig};
 
 use chipp_http::curl::easy::Auth;
 use chipp_http::json::parse_json;

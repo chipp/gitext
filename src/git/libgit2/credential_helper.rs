@@ -1,4 +1,4 @@
-use super::AuthDomainConfig;
+use crate::git::AuthDomainConfig;
 use git2::{Cred, CredentialType, Error};
 use rpassword::prompt_password;
 

@@ -2,8 +2,8 @@ use std::path::Path;
 
 use clap::ArgMatches;
 
-use crate::common_git::{clone_repo, set_config, Config};
 use crate::error::Error;
+use crate::git::{clone_repo, set_config, Config};
 use crate::github::{Client, RepoId};
 
 pub struct Clone;
