@@ -4,12 +4,12 @@ use std::process::{Command, Stdio};
 use crate::bitbucket::{get_bitbucket_remote, get_current_repo_id, Client, PullRequest, RepoId};
 use crate::error::Error;
 use crate::git::{
-    fetch_remote, find_remote_branch, get_current_branch, switch_to_existing_branch,
-    switch_to_local_branch, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
+    fetch_remote, get_current_branch, switch_to_branch, AuthDomainConfig, BaseUrlConfig,
+    JiraAuthDomainConfig, JiraUrlConfig,
 };
 
 use clap::ArgMatches;
-use git2::{ErrorClass, ErrorCode, Oid, Repository};
+use git2::Repository;
 use url::Url;
 
 pub struct Pr;
@@ -56,7 +56,7 @@ impl Pr {
                     .await
                     .map_err(|err| Error::NoPrWithId(id, err))?;
 
-                Self::switch_to_branch(&pr, &repo, config)?;
+                Self::switch(&pr, &repo, config)?;
 
                 Ok(())
             }
@@ -177,32 +177,17 @@ impl Pr {
 }
 
 impl Pr {
-    fn switch_to_branch<Conf>(
-        pr: &PullRequest,
-        repo: &Repository,
-        config: &Conf,
-    ) -> Result<(), Error>
+    fn switch<Conf>(pr: &PullRequest, repo: &Repository, config: &Conf) -> Result<(), Error>
     where
-        Conf: AuthDomainConfig,
         Conf: BaseUrlConfig,
+        Conf: AuthDomainConfig,
     {
-        let branch_name: &str = &pr.from_ref.display_id;
+        let branch_name = &pr.from_ref.display_id;
+        let commit_sha = &pr.from_ref.latest_commit;
+
         let mut remote = get_bitbucket_remote(&repo, config).unwrap();
         fetch_remote(&mut remote, repo, config)?;
 
-        match find_remote_branch(branch_name, &remote, &repo) {
-            Ok(remote_branch) => switch_to_existing_branch(branch_name, remote_branch, repo),
-            Err(err)
-                if err.class() == ErrorClass::Reference && err.code() == ErrorCode::NotFound =>
-            {
-                // TODO: handle existing local branch
-                let id = Oid::from_str(&pr.from_ref.latest_commit)?;
-                let commit = repo.find_commit(id)?;
-
-                let local_branch = repo.branch(&pr.from_ref.display_id, &commit, false)?;
-                switch_to_local_branch(local_branch, &repo)
-            }
-            Err(err) => Err(err.into()),
-        }
+        switch_to_branch(branch_name, commit_sha, &remote, repo)
     }
 }

@@ -8,7 +8,7 @@ mod git_cli {
 }
 
 #[cfg(feature = "git-cli")]
-pub use git_cli::branch::{switch_to_existing_branch, switch_to_local_branch};
+pub use git_cli::branch::switch_to_branch;
 
 #[cfg(feature = "git-cli")]
 pub use git_cli::clone::clone_repo;
@@ -26,7 +26,7 @@ mod libgit2 {
 }
 
 #[cfg(not(feature = "git-cli"))]
-pub use libgit2::branch::{switch_to_existing_branch, switch_to_local_branch};
+pub use libgit2::branch::switch_to_branch;
 
 #[cfg(not(feature = "git-cli"))]
 pub use libgit2::clone::clone_repo;
