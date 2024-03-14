@@ -21,12 +21,11 @@ mod github;
 
 use std::path::Path;
 
+use clap::error::ErrorKind as ClapErrorKind;
+use clap::ArgMatches;
 use git2::{Config as GitConfig, Repository};
 use git2::{ErrorClass as GitErrorClass, ErrorCode as GitErrorCode};
 use url::Url;
-use clap::ArgMatches;
-use clap::error::ErrorKind as ClapErrorKind;
-
 
 use cli::cli;
 use error::Error;
@@ -34,8 +33,6 @@ use git::{
     exec_git_cmd, get_aliases_from_config, get_config, get_repo, set_provider, Config, ConfigError,
     Provider::*,
 };
-
-
 
 type Result<T> = std::result::Result<T, Error>;
 

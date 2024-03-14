@@ -39,10 +39,15 @@ impl TypedValueParser for GithubRepoIdParser {
         let components = value.split("/").collect::<Vec<_>>();
 
         if components.len() == 2 {
-            Ok(RepoId {
-                owner: components[0].to_owned(),
-                repo: components[1].to_owned(),
-            })
+            let owner = components[0].to_owned();
+            let repo = components[1].to_owned();
+
+            // Usernames for user accounts on GitHub.com can only contain alphanumeric characters and dashes ( - ).
+            if !owner.chars().all(|c| c.is_alphanumeric() || c == '-') {
+                return Err(Error::new(ErrorKind::ValueValidation));
+            }
+
+            Ok(RepoId { owner, repo })
         } else {
             let mut error = Error::new(ErrorKind::ValueValidation);
 
