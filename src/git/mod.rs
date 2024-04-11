@@ -106,6 +106,14 @@ where
     }
 
     let git = git.args(args);
+    eprintln!(
+        "\x1b[35mgit {}\x1b[0m",
+        git.get_args()
+            .collect::<Vec<_>>()
+            .join(OsStr::new(" "))
+            .into_string()
+            .unwrap_or_default()
+    );
 
     let output = git
         .spawn()

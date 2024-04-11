@@ -44,7 +44,11 @@ fn create(provider: Provider) -> Command {
                 .required(true)
                 .value_name("PROJECT CODE"),
         ),
-        Provider::GitLab => unimplemented!("not yet implemented"),
+        Provider::GitLab => Command::new("create").arg(
+            Arg::new("project")
+                .required(true)
+                .value_name("PROJECT CODE"),
+        ),
         Provider::GitHub => Command::new("create")
             .arg(Arg::new("org").required(false).value_name("ORGANIZATION"))
             .arg(
