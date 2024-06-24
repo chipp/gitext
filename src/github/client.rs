@@ -81,7 +81,7 @@ impl Client<'_> {
                 &["repos", &repo_id.owner, &repo_id.repo, "pulls"],
                 &[
                     ("state", state),
-                    ("branch", branch),
+                    ("head", &format!("{}:{branch}", repo_id.owner)),
                     ("per_page", "100"),
                     ("sort", "updated"),
                     ("direction", "desc"),
