@@ -4,6 +4,7 @@ mod commands {
 
 pub use commands::ticket::Ticket;
 
+mod auth;
 mod cli;
 mod error;
 mod git;
@@ -19,6 +20,7 @@ mod gitlad;
 mod gighub;
 mod github;
 
+pub(crate) use auth::Authenticator;
 use std::path::Path;
 
 use clap::error::ErrorKind as ClapErrorKind;

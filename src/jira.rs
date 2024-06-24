@@ -1,10 +1,13 @@
 use crate::error::Error;
-use crate::git::{JiraAuthDomainConfig, JiraUrlConfig};
-use chipp_http::{curl::easy::Auth, Error as HttpError, HttpClient};
+use crate::{
+    git::{JiraAuthDomainConfig, JiraUrlConfig},
+    Authenticator,
+};
+use chipp_http::{Error as HttpError, HttpClient};
 use serde::Deserialize;
 
 pub struct JiraClient<'a> {
-    inner: HttpClient<'a>,
+    inner: HttpClient<Authenticator<'a>>,
 }
 
 impl JiraClient<'_> {
@@ -18,17 +21,9 @@ impl JiraClient<'_> {
             .jira_auth_domain()
             .ok_or(Error::JiraUrlNotConfigured)?;
 
-        let mut inner = HttpClient::new(jira_url).unwrap();
-        inner.set_interceptor(move |easy| {
-            let mut auth = Auth::new();
-            auth.basic(true);
-            easy.http_auth(&auth).unwrap();
-
-            let (username, password) = chipp_auth::user_and_password(jira_auth_domain);
-
-            easy.username(username.as_ref()).unwrap();
-            easy.password(password.as_ref()).unwrap();
-        });
+        let inner = HttpClient::new(jira_url)
+            .unwrap()
+            .with_interceptor(Authenticator::basic_auth(jira_auth_domain));
 
         Ok(JiraClient { inner })
     }

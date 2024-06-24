@@ -4,6 +4,7 @@ use super::build_status::BuildStats;
 use super::repo::Repo;
 use super::{PullRequest, RepoId};
 use crate::git::{AuthDomainConfig, BaseUrlConfig};
+use crate::Authenticator;
 
 use chipp_http::curl::easy::Auth;
 use chipp_http::json::parse_json;
@@ -11,7 +12,7 @@ use chipp_http::{Error, HttpClient, HttpMethod};
 use serde::{Deserialize, Serialize};
 
 pub struct Client<'a> {
-    inner: HttpClient<'a>,
+    inner: HttpClient<Authenticator<'a>>,
 }
 
 impl Client<'_> {
@@ -23,17 +24,9 @@ impl Client<'_> {
         let mut base_url = config.base_url().clone();
         base_url.set_path("/rest");
 
-        let mut inner = HttpClient::new(base_url).unwrap();
-        inner.set_interceptor(move |easy| {
-            let mut auth = Auth::new();
-            auth.basic(true);
-            easy.http_auth(&auth).unwrap();
-
-            let (username, password) = chipp_auth::user_and_password(config.auth_domain());
-
-            easy.username(username.as_ref()).unwrap();
-            easy.password(password.as_ref()).unwrap();
-        });
+        let inner = HttpClient::new(base_url)
+            .unwrap()
+            .with_interceptor(Authenticator::basic_auth(config.auth_domain()));
 
         Client { inner }
     }

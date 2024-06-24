@@ -1,14 +1,15 @@
-use chipp_http::curl::easy::Auth;
-use chipp_http::{Error, HttpClient};
+use chipp_http::curl::easy::{self, Auth};
+use chipp_http::{Error, HttpClient, Interceptor, Request};
 use serde::Serialize;
 
 use crate::git::{AuthDomainConfig, BaseUrlConfig};
+use crate::Authenticator;
 
 use super::repo::Repo;
 use super::{CheckSuites, PullRequest, RepoId};
 
 pub struct Client<'a> {
-    inner: HttpClient<'a>,
+    inner: HttpClient<Authenticator<'a>>,
 }
 
 impl Client<'_> {
@@ -20,19 +21,9 @@ impl Client<'_> {
         let mut base_url = config.base_url().clone();
         base_url.set_host(Some("api.github.com")).unwrap();
 
-        let mut inner = HttpClient::new(base_url).unwrap();
-        inner.set_interceptor(move |easy| {
-            easy.ssl_verify_peer(false).unwrap();
-
-            let mut auth = Auth::new();
-            auth.basic(true);
-            easy.http_auth(&auth).unwrap();
-
-            let (username, password) = chipp_auth::user_and_password(config.auth_domain());
-
-            easy.username(username.as_ref()).unwrap();
-            easy.password(password.as_ref()).unwrap();
-        });
+        let mut inner = HttpClient::new(base_url)
+            .unwrap()
+            .with_interceptor(Authenticator::basic_auth(config.auth_domain()));
 
         inner.set_default_headers(&[("User-Agent", "gitext")]);
 
@@ -90,7 +81,7 @@ impl Client<'_> {
                 &["repos", &repo_id.owner, &repo_id.repo, "pulls"],
                 &[
                     ("state", state),
-                    ("base", branch),
+                    ("branch", branch),
                     ("per_page", "100"),
                     ("sort", "updated"),
                     ("direction", "desc"),

@@ -1,11 +1,14 @@
-use crate::git::{AuthDomainConfig, BaseUrlConfig};
+use crate::{
+    git::{AuthDomainConfig, BaseUrlConfig},
+    Authenticator,
+};
 
 use super::{user::User, Pipeline, PullRequest, RepoId};
 
 use chipp_http::{Error, HttpClient};
 
 pub struct Client<'a> {
-    inner: HttpClient<'a>,
+    inner: HttpClient<Authenticator<'a>>,
 }
 
 impl Client<'_> {
@@ -17,15 +20,9 @@ impl Client<'_> {
         let mut base_url = config.base_url().clone();
         base_url.set_path("/api/v4/");
 
-        let mut inner = HttpClient::new(base_url).unwrap();
-
-        inner.set_default_headers(&[(
-            "Authorization",
-            &format!(
-                "Bearer {}",
-                chipp_auth::token(config.auth_domain(), "access_token")
-            ),
-        )]);
+        let inner = HttpClient::new(base_url)
+            .unwrap()
+            .with_interceptor(Authenticator::token(config.auth_domain(), "access_token"));
 
         Client { inner }
     }
