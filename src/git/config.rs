@@ -14,7 +14,6 @@ pub struct Config {
     pub auth_domain: String,
 
     pub jira_url: Option<Url>,
-    pub jira_auth_domain: Option<String>,
 }
 
 impl Default for Config {
@@ -24,7 +23,6 @@ impl Default for Config {
             base_url: Url::parse("https://github.com").unwrap(),
             auth_domain: "github.com".to_string(),
             jira_url: None,
-            jira_auth_domain: None,
         }
     }
 }
@@ -56,16 +54,6 @@ pub trait JiraUrlConfig {
 impl JiraUrlConfig for Config {
     fn jira_url(&self) -> Option<&Url> {
         self.jira_url.as_ref()
-    }
-}
-
-pub trait JiraAuthDomainConfig {
-    fn jira_auth_domain(&self) -> Option<&str>;
-}
-
-impl JiraAuthDomainConfig for Config {
-    fn jira_auth_domain(&self) -> Option<&str> {
-        self.jira_auth_domain.as_ref().map(String::as_str)
     }
 }
 
@@ -172,16 +160,11 @@ pub fn get_config(repo: &Repository) -> Result<Config, ConfigError> {
     let jira_url = config.get_string("gitext.jiraurl").ok();
     let jira_url = jira_url.and_then(|string| Url::parse(&string).ok());
 
-    let jira_auth_domain = config.get_string("gitext.jiraauthdomain").ok().or(jira_url
-        .as_ref()
-        .map(|url| String::from(url.host_str().unwrap())));
-
     Ok(Config {
         provider,
         base_url,
         auth_domain,
         jira_url,
-        jira_auth_domain,
     })
 }
 
@@ -206,14 +189,6 @@ pub fn set_config(repo: &Repository, config: &Config) -> Result<(), ConfigError>
             .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))?;
     } else {
         repo_config.remove("gitext.jiraurl").ok();
-    }
-
-    if let Some(jira_auth_domain) = &config.jira_auth_domain {
-        repo_config
-            .set_str("gitext.jiraauthdomain", jira_auth_domain)
-            .map_err(|err| ConfigError::UnableToUpdateConfig(err.message().to_string()))?;
-    } else {
-        repo_config.remove("gitext.jiraauthdomain").ok();
     }
 
     Ok(())

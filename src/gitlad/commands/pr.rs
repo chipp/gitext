@@ -2,7 +2,7 @@ use std::process::{Command, Stdio};
 
 use crate::git::{
     fetch_remote, get_current_branch, switch_to_branch, AuthDomainConfig, BaseUrlConfig,
-    JiraAuthDomainConfig, JiraUrlConfig,
+    JiraUrlConfig,
 };
 use crate::gitlab::{get_current_repo_id, get_gitlab_remote, Client, PullRequest, RepoId};
 use crate::Error;
@@ -22,7 +22,6 @@ impl Pr {
     where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
-        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
         let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;

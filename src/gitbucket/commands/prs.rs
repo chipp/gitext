@@ -2,13 +2,11 @@ use std::collections::HashMap;
 
 use crate::bitbucket::{get_current_repo_id, Client, MergedBuildStatus, PullRequest};
 use crate::error::Error;
-use crate::git::{
-    extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig,
-};
-use crate::jira::JiraClient;
+use crate::git::{extract_ticket, AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
 
 use clap::ArgMatches;
 use git2::Repository;
+use jira_api::JiraClient;
 use prettytable::{cell, row, Cell, Table};
 
 pub struct Prs;
@@ -22,7 +20,6 @@ impl Prs {
     where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
-        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
         let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
@@ -66,7 +63,6 @@ impl Prs {
     ) where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
-        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
         if prs.is_empty() {
@@ -163,10 +159,10 @@ impl Prs {
         config: &Conf,
     ) -> Option<HashMap<String, String>>
     where
-        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
-        let jira_client = JiraClient::new(config).ok()?;
+        let jira_url = config.jira_url()?;
+        let jira_client = JiraClient::new(jira_url, jira_api::client::AuthType::AccessToken)?;
 
         let mut tickets = prs
             .iter()
@@ -174,19 +170,11 @@ impl Prs {
             .collect::<Vec<_>>();
         tickets.dedup();
 
-        let tickets = jira_client
-            .search_issues(
-                format!("key in ({})", tickets.join(",")),
-                0,
-                100,
-                Some(&["status"]),
-            )
-            .await
-            .ok()?;
+        let jql = format!("key in ({})", tickets.join(","));
+        let tickets = crate::jira::pull(&jira_client, &jql).await;
 
         Some(
             tickets
-                .issues
                 .into_iter()
                 .map(|issue| (issue.key, issue.fields.status.name))
                 .collect::<HashMap<_, _>>(),

@@ -5,7 +5,7 @@ use crate::bitbucket::{get_bitbucket_remote, get_current_repo_id, Client, PullRe
 use crate::error::Error;
 use crate::git::{
     fetch_remote, get_current_branch, switch_to_branch, AuthDomainConfig, BaseUrlConfig,
-    JiraAuthDomainConfig, JiraUrlConfig,
+    JiraUrlConfig,
 };
 
 use clap::ArgMatches;
@@ -23,7 +23,6 @@ impl Pr {
     where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
-        Conf: JiraAuthDomainConfig + Send + Sync,
         Conf: JiraUrlConfig,
     {
         let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;

@@ -41,7 +41,7 @@ use std::process::{exit, Command};
 pub use config::{
     get_aliases_from_config, get_config, set_config, set_provider, Config, ConfigError, Provider,
 };
-pub use config::{AuthDomainConfig, BaseUrlConfig, JiraAuthDomainConfig, JiraUrlConfig};
+pub use config::{AuthDomainConfig, BaseUrlConfig, JiraUrlConfig};
 
 use git2::{Branch, BranchType, Remote, RepositoryOpenFlags};
 use git2::{Error as GitError, Repository};

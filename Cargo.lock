@@ -519,6 +519,7 @@ dependencies = [
  "futures-util",
  "git2",
  "hyphenation",
+ "jira_api",
  "prettytable-rs",
  "regex",
  "rpassword",
@@ -624,6 +625,20 @@ name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
+
+[[package]]
+name = "jira_api"
+version = "1.0.6"
+source = "git+https://github.com/chipp/rs_jira_api?tag=1.1.0#83f08960d16cac5f7ba8caedf64691c4bbda11dc"
+dependencies = [
+ "chipp_auth",
+ "chipp_http",
+ "chrono",
+ "log",
+ "serde",
+ "serde_json",
+ "url",
+]
 
 [[package]]
 name = "jobserver"
