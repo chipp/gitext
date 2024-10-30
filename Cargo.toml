@@ -5,18 +5,18 @@ authors = ["Vladimir Burdukov <chippcheg@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-chipp_http = "1.0"
+chipp_http = "1.2"
 chipp_auth = "2.1"
 jira_api = { git = "https://github.com/chipp/rs_jira_api", tag = "1.1.0" }
 
 futures = { version = "0.3", features = ["std"] }
-tokio = { version = "1.36", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.41", features = ["macros", "rt-multi-thread"] }
 
-clap = "4.5.1"
-anyhow = "1.0.80"
+clap = "4.5.20"
+anyhow = "1.0.91"
 
 url = { version = "2.5", features = ["serde"] }
-git2 = "0.18"
+git2 = "0.19"
 dirs = "5.0"
 
 serde = { version = "1.0", features = ["derive"] }
@@ -25,7 +25,7 @@ chrono-humanize = "0.2"
 
 futures-util = "0.3"
 
-regex = "1.10"
+regex = "1.11"
 rpassword = "7.3"
 
 prettytable-rs = "^0.10"
