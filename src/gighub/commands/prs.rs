@@ -1,6 +1,6 @@
 use crate::git::{AuthDomainConfig, BaseUrlConfig};
 use crate::github::{get_current_repo_id, Client, Conclusion, PullRequest, RepoId, State, Status};
-
+use crate::ArgMatches;
 use crate::Error;
 
 use futures::{stream, StreamExt};
@@ -9,8 +9,16 @@ use prettytable::{cell, row, Table};
 
 pub struct Prs;
 
+enum FilterMode {
+    ByAuthor(u32),
+}
+
 impl Prs {
-    pub async fn handle<Conf>(repo: &Repository, config: &Conf) -> Result<(), Error>
+    pub async fn handle<Conf>(
+        args: &ArgMatches,
+        repo: &Repository,
+        config: &Conf,
+    ) -> Result<(), Error>
     where
         Conf: AuthDomainConfig + Send + Sync,
         Conf: BaseUrlConfig,
@@ -18,7 +26,17 @@ impl Prs {
         let repo_id = get_current_repo_id(&repo, config).ok_or(Error::InvalidRepo)?;
         let client = Client::new(config);
 
-        let prs = client.find_open_prs(&repo_id).await?;
+        let filter_mode = Self::filter_mode(args, &client).await;
+
+        let mut prs = client.find_open_prs(&repo_id).await?;
+
+        match filter_mode {
+            Some(FilterMode::ByAuthor(id)) => {
+                prs = prs.into_iter().filter(|pr| pr.user.id == id).collect()
+            }
+            None => {}
+        }
+
         if prs.is_empty() {
             println!("No open PRs for that repo");
             return Ok(());
@@ -115,6 +133,24 @@ impl Prs {
             (Status::Queued, _) | (Status::InProgress, _) => Some(ChecksStatus::InProgress),
             (Status::Completed, Some(Conclusion::Success)) => Some(ChecksStatus::Passed),
             (Status::Completed, _) => Some(ChecksStatus::Failed),
+        }
+    }
+
+    async fn filter_mode(args: &ArgMatches, client: &Client<'_>) -> Option<FilterMode> {
+        match args.get_one::<String>("filter").map(String::as_str) {
+            Some("my") => {
+                let user = client.whoami().await.ok()?;
+                Some(FilterMode::ByAuthor(user.id))
+            }
+            // Some("assigned") => {
+            //     let user = client.whoami().await.ok()?;
+            //     Some(FilterMode::ByAssignee(user.id))
+            // }
+            Some(username) => {
+                let user = client.get_user_by_name(username).await.ok()?;
+                Some(FilterMode::ByAuthor(user.id))
+            }
+            None => None,
         }
     }
 }

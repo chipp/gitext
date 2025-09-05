@@ -219,7 +219,7 @@ async fn handle_github(
         "browse" => Browse::handle(args, repo, config, &path)?,
         "create" => Create::handle(args, repo, config).await?,
         "pr" => Pr::handle(args, repo, config).await?,
-        "prs" => Prs::handle(repo, config).await?,
+        "prs" => Prs::handle(args, repo, config).await?,
         "switch" => {
             if !Switch::handle(args, repo, config).await? {
                 return Ok(false);

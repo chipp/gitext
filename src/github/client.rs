@@ -36,6 +36,13 @@ impl Client<'_> {
         self.inner.get(vec!["user"]).await
     }
 
+    pub async fn get_user_by_name<N: AsRef<str>>(
+        &self,
+        name: N,
+    ) -> Result<super::user::User, Error> {
+        self.inner.get(vec!["users", name.as_ref()]).await
+    }
+
     pub async fn find_open_prs(&self, repo_id: &RepoId) -> Result<Vec<PullRequest>, Error> {
         self.inner
             .get_with_params(

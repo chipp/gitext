@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use url::Url;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct PullRequest {
     pub number: u16,
     pub title: String,
@@ -22,7 +22,7 @@ pub struct PullRequest {
     pub base: Ref,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Ref {
     pub label: String,
     pub sha: String,
