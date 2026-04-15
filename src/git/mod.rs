@@ -69,6 +69,36 @@ pub fn get_current_branch(repo: &Repository) -> Option<String> {
     }
 }
 
+pub fn get_current_branch_upstream_remote(repo: &Repository) -> Option<String> {
+    let branch = get_current_branch(repo)?;
+    let refname = format!("refs/heads/{branch}");
+
+    repo.branch_upstream_remote(&refname)
+        .ok()?
+        .as_str()
+        .map(String::from)
+}
+
+pub fn find_remote_by_priority<'repo, T, F>(repo: &'repo Repository, mut f: F) -> Option<T>
+where
+    F: FnMut(Remote<'repo>) -> Option<T>,
+{
+    let remotes = repo.remotes().ok()?;
+
+    if let Some(remote_name) = get_current_branch_upstream_remote(repo) {
+        if let Ok(remote) = repo.find_remote(&remote_name) {
+            if let Some(result) = f(remote) {
+                return Some(result);
+            }
+        }
+    }
+
+    remotes.iter().find_map(|remote_name| {
+        let remote = repo.find_remote(remote_name?).ok()?;
+        f(remote)
+    })
+}
+
 pub fn find_remote_branch<'repo>(
     branch_name: &str,
     remote: &Remote,
@@ -125,4 +155,122 @@ where
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    struct TempRepo {
+        path: std::path::PathBuf,
+        repo: Repository,
+    }
+
+    impl TempRepo {
+        fn new() -> Self {
+            let id = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!("gitext-test-{id}"));
+            fs::create_dir(&path).unwrap();
+
+            let repo = Repository::init(&path).unwrap();
+            repo.set_head("refs/heads/work").unwrap();
+            let tree_id = repo.index().unwrap().write_tree().unwrap();
+            let tree = repo.find_tree(tree_id).unwrap();
+            let signature = git2::Signature::now("gitext", "gitext@example.com").unwrap();
+            repo.commit(Some("HEAD"), &signature, &signature, "initial", &tree, &[])
+                .unwrap();
+            drop(tree);
+
+            Self { path, repo }
+        }
+
+        fn set_upstream_remote(&self, remote: &str) {
+            let mut config = self.repo.config().unwrap();
+            config.set_str("branch.work.remote", remote).unwrap();
+            config
+                .set_str("branch.work.merge", "refs/heads/work")
+                .unwrap();
+        }
+    }
+
+    impl Drop for TempRepo {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn selected_remote_name(repo: &Repository) -> Option<String> {
+        find_remote_by_priority(repo, |remote| {
+            let url = remote.url()?;
+
+            if url.contains("github.com") {
+                remote.name().map(String::from)
+            } else {
+                None
+            }
+        })
+    }
+
+    #[test]
+    fn prefers_current_branch_upstream_remote() {
+        let temp = TempRepo::new();
+        temp.repo
+            .remote("fork", "git@github.com:chipp/gitext-fork.git")
+            .unwrap();
+        temp.repo
+            .remote("origin", "git@github.com:chipp/gitext.git")
+            .unwrap();
+        temp.set_upstream_remote("origin");
+
+        assert_eq!(selected_remote_name(&temp.repo), Some("origin".to_string()));
+    }
+
+    #[test]
+    fn can_prefer_non_origin_upstream_remote() {
+        let temp = TempRepo::new();
+        temp.repo
+            .remote("origin", "git@github.com:chipp/gitext.git")
+            .unwrap();
+        temp.repo
+            .remote("fork", "git@github.com:chipp/gitext-fork.git")
+            .unwrap();
+        temp.set_upstream_remote("fork");
+
+        assert_eq!(selected_remote_name(&temp.repo), Some("fork".to_string()));
+    }
+
+    #[test]
+    fn falls_back_to_first_matching_remote_without_upstream() {
+        let temp = TempRepo::new();
+        temp.repo
+            .remote("fork", "git@github.com:chipp/gitext-fork.git")
+            .unwrap();
+        temp.repo
+            .remote("origin", "git@github.com:chipp/gitext.git")
+            .unwrap();
+
+        assert_eq!(selected_remote_name(&temp.repo), Some("fork".to_string()));
+    }
+
+    #[test]
+    fn falls_back_when_upstream_remote_does_not_match() {
+        let temp = TempRepo::new();
+        temp.repo
+            .remote("internal", "git@gitlab.company.com:project/gitext.git")
+            .unwrap();
+        temp.repo
+            .remote("origin", "git@github.com:chipp/gitext.git")
+            .unwrap();
+        temp.repo
+            .remote("fork", "git@github.com:chipp/gitext-fork.git")
+            .unwrap();
+        temp.set_upstream_remote("internal");
+
+        assert_eq!(selected_remote_name(&temp.repo), Some("fork".to_string()));
+    }
 }

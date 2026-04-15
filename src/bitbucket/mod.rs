@@ -13,18 +13,15 @@ pub use client::Client;
 pub use pull_request::PullRequest;
 pub use repo_id::RepoId;
 
-use crate::git::BaseUrlConfig;
+use crate::git::{find_remote_by_priority, BaseUrlConfig};
 use git2::{Remote, Repository};
 
 pub fn get_current_repo_id<Conf>(repo: &Repository, config: &Conf) -> Option<RepoId>
 where
     Conf: BaseUrlConfig,
 {
-    let remotes = repo.remotes().ok()?;
-
-    remotes.iter().find_map(|remote| {
-        let remote = repo.find_remote(remote.unwrap()).unwrap();
-        RepoId::from_str_with_host(remote.url().unwrap(), config.base_url()).ok()
+    find_remote_by_priority(repo, |remote| {
+        RepoId::from_str_with_host(remote.url()?, config.base_url()).ok()
     })
 }
 
@@ -35,11 +32,8 @@ pub fn get_bitbucket_remote<'r, 'c, Conf>(
 where
     Conf: BaseUrlConfig,
 {
-    let remotes = repo.remotes().ok()?;
-
-    remotes.iter().find_map(|remote| {
-        let remote = repo.find_remote(remote.unwrap()).unwrap();
-        if RepoId::from_str_with_host(remote.url().unwrap(), config.base_url()).is_ok() {
+    find_remote_by_priority(repo, |remote| {
+        if RepoId::from_str_with_host(remote.url()?, config.base_url()).is_ok() {
             Some(remote)
         } else {
             None
